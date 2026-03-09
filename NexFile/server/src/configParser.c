@@ -1,5 +1,5 @@
-#include "../include/server/configParser.h"
-#include "../include/logger.h"
+#include "../include/configParser.h"
+#include "../../shared/logger.h"
 
 #include <arpa/inet.h>
 #include <fcntl.h>
@@ -7,6 +7,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <errno.h>
 
 struct sockaddr_in Config(Config_t *config)
 {

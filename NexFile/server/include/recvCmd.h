@@ -1,7 +1,7 @@
 #ifndef __RECVCMD_H__
 #define __RECVCMD_H__
-#include "../protocol.h"
-#include "../logger.h"
+#include "../../shared/protocol.h"
+#include "../../shared/logger.h"
 
 int recvn(int sockFd, void *buf, long total);
 int recvCmd(int sockfd, PacketCmd_t *header);

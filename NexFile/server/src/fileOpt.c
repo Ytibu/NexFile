@@ -1,4 +1,4 @@
-#include "../include/server/fileOpt.h"
+#include "../include/fileOpt.h"
 
 int changeDir(const char *dirPath)
 {

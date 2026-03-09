@@ -1,7 +1,7 @@
 #ifndef __CMDVERI_H__
 #define __CMDVERI_H__
 
-#include "../protocol.h"
+#include "../../shared/protocol.h"
 
 typedef struct cmdArg_s {
     char *cmd_;

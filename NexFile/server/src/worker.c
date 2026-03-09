@@ -1,9 +1,9 @@
-#include "../include/server/worker.h"
+#include "../include/worker.h"
 
-#include "../include/logger.h"
-#include "../include/server/threadPool.h"
-#include "../include/server/epoll.h"
-#include "../include/server/recvCmd.h"
+#include "../../shared/logger.h"
+#include "../include/threadPool.h"
+#include "../include/epoll.h"
+#include "../include/recvCmd.h"
 
 #include <stdio.h>
 #include <stdlib.h>

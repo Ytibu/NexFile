@@ -1,4 +1,4 @@
-#include "../include/server/threadPool.h"
+#include "../include/threadPool.h"
 
 int threadPoolInit(int numThreads, ThreadPool_t *threadPool)
 {

@@ -24,4 +24,6 @@ int removeFile(const char *filePath);
 
 int makeDir(const char *dirPath);
 
+int choiceFileOpt(const char *cmd, const char *arg, FileOpt *fileOpt);
+
 #endif

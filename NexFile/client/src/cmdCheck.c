@@ -1,4 +1,4 @@
-#include "../include/client/cmdCheck.h"
+#include "../include/cmdCheck.h"
 
 #include <stdio.h>
 #include <stdlib.h>

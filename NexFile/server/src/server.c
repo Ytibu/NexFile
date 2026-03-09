@@ -1,9 +1,9 @@
-#include "../include/logger.h"
-#include "../include/server/tcpInit.h"
-#include "../include/server/epoll.h"
-#include "../include/server/threadPool.h"
-#include "../include/server/taskQueue.h"
-#include "../include/server/configParser.h"
+#include "../../shared/logger.h"
+#include "../include/tcpInit.h"
+#include "../include/epoll.h"
+#include "../include/threadPool.h"
+#include "../include/taskQueue.h"
+#include "../include/configParser.h"
 
 #include <stdio.h>
 #include <stdlib.h>

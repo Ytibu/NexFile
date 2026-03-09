@@ -1,4 +1,4 @@
-#include "../include/server/recvCmd.h"
+#include "../include/recvCmd.h"
 
 #include <errno.h>
 #include <sys/socket.h>

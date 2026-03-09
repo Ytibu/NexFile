@@ -1,5 +1,5 @@
-#include "../include/client/sendCmd.h"
-#include "../include/logger.h"
+#include "../include/sendCmd.h"
+#include "../../shared/logger.h"
 
 #include <string.h>
 #include <stdio.h>

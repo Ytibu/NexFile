@@ -1,6 +1,6 @@
-#include "../include/logger.h"
-#include "../include/client/cmdCheck.h"
-#include "../include/client/sendCmd.h"
+#include "../../shared/logger.h"
+#include "../include/cmdCheck.h"
+#include "../include/sendCmd.h"
 
 #include <stdio.h>
 #include <stdlib.h>

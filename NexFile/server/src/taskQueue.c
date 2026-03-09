@@ -1,9 +1,9 @@
-#include "../include/server/taskQueue.h"
+#include "../include/taskQueue.h"
 
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "../include/logger.h"
+#include "../../shared/logger.h"
 
 int taskQueueInit(TaskQueue_t *taskQueue)
 {

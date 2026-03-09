@@ -1,47 +1,43 @@
-cmake_minimum_required(VERSION 3.28)
+# CMake 最低版本要求
+cmake_minimum_required(VERSION 3.16)
 
-# 项目名与语言类型声明
-project(netDisk C)
+# 项目名称与语言
+project(NextFile C)
 
-# -------------------- 编译基础参数 --------------------
-# 指定 C 标准与约束：要求使用 C11，不启用编译器扩展
-# set(CMAKE_C_STANDARD 11)
+# C 标准配置：
+# 使用 C11，并开启 GNU 扩展以兼容 strtok_r/strdup 等接口
+set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
-set(CMAKE_C_EXTENSIONS OFF)
+set(CMAKE_C_EXTENSIONS ON)
 
-# 对齐 Makefile: -Wall -Wextra -g
+# 可执行文件统一输出到项目根目录下的 bin/
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
+
+# 全局编译选项：开启常用告警并保留调试信息
 add_compile_options(-Wall -Wextra -g)
 
-# -------------------- 目录规划 --------------------
-# 源码目录与二进制输出目录（均基于项目根目录）
-set(SERVER_SRC_DIR "${CMAKE_SOURCE_DIR}/server")
-set(CLIENT_SRC_DIR "${CMAKE_SOURCE_DIR}/client")
-set(BIN_DIR "${CMAKE_SOURCE_DIR}/bin")
+# 自动收集服务端源文件
+file(GLOB SERVER_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_SOURCE_DIR}/NexFile/server/src/*.c"
+)
 
-# 可执行文件输出到项目内 bin/
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${BIN_DIR}")
+# 自动收集客户端源文件
+file(GLOB CLIENT_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_SOURCE_DIR}/NexFile/client/src/*.c"
+)
 
-# 头文件搜索路径（对齐 Makefile 的 -Iinclude）
-include_directories("${CMAKE_SOURCE_DIR}/include")
+# server 可执行文件与头文件路径
+add_executable(server ${SERVER_SOURCES})
+target_include_directories(server PRIVATE
+    "${CMAKE_SOURCE_DIR}/NexFile/server/include"
+    "${CMAKE_SOURCE_DIR}/NexFile/shared"
+)
+# server 依赖 pthread 线程库
+target_link_libraries(server PRIVATE pthread)
 
-# -------------------- 源文件收集 --------------------
-# 自动收集 server/client 目录下所有 .c 文件
-file(GLOB SERVER_SRCS CONFIGURE_DEPENDS "${SERVER_SRC_DIR}/*.c")
-file(GLOB CLIENT_SRCS CONFIGURE_DEPENDS "${CLIENT_SRC_DIR}/*.c")
-
-# -------------------- 目标定义 --------------------
-# server 目标：生成 bin/server.out
-add_executable(server_app ${SERVER_SRCS})
-set_target_properties(server_app PROPERTIES OUTPUT_NAME "server.out")
-
-# client 目标：生成 bin/client.out
-add_executable(client_app ${CLIENT_SRCS})
-set_target_properties(client_app PROPERTIES OUTPUT_NAME "client.out")
-
-target_compile_definitions(server_app PRIVATE _POSIX_C_SOURCE=200809L)
-target_compile_definitions(client_app PRIVATE _POSIX_C_SOURCE=200809L)
-
-# server 依赖线程库（对齐 Makefile 的 -lpthread）
-# 使用 CMake 提供的线程目标，保证跨平台链接行为一致
-find_package(Threads REQUIRED)
-target_link_libraries(server_app PRIVATE Threads::Threads)
+# client 可执行文件与头文件路径
+add_executable(client ${CLIENT_SOURCES})
+target_include_directories(client PRIVATE
+    "${CMAKE_SOURCE_DIR}/NexFile/client/include"
+    "${CMAKE_SOURCE_DIR}/NexFile/shared"
+)
