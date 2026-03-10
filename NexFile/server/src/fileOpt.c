@@ -1,33 +1,53 @@
 #include "../include/fileOpt.h"
 
-int changeDir(const char *dirPath)
+#include <stdio.h>
+
+int changeDir(PacketCmd_t *packetCmd)
 {
-    return 0;
+    if(packetCmd->data_ == NULL)
+    {
+        
+    }
 }
 
-int listDir(const char *dirPath)
-{
-    return 0;
-}
+int listDir(PacketCmd_t *packetCmd)
+{}
 
-int printDir(const char *dirPath)
-{
-    return 0;
-}
+int printDir(PacketCmd_t *packetCmd)
+{}
 
-int getFiles(const char *dirPath)
+int getFiles(PacketCmd_t *packetCmd)
+{}
+
+int putsFile(PacketCmd_t *packetCmd)
+{}
+
+int removeFile(PacketCmd_t *packetCmd)
+{}
+
+int makeDir(PacketCmd_t *packetCmd)
+{}
+
+int choiceFileOpt(PacketCmd_t *packetCmd)
 {
-    return 0;
-}
-int putsFile(FileOpt *fileOpt)
-{
-    return 0;
-}
-int removeFile(const char *filePath)
-{
-    return 0;
-}
-int makeDir(const char *dirPath)
-{
-    return 0;
+    switch (packetCmd->cmdCode_)
+    {
+    case REQ_CD:
+        return changeDir(packetCmd);
+    case REQ_LS:
+        return listDir(packetCmd);
+    case REQ_PWD:
+        return printDir(packetCmd);
+    case REQ_GET:
+        return getFiles(packetCmd);
+    case REQ_PUT:
+        return putsFile(packetCmd);
+    case REQ_RM:
+        return removeFile(packetCmd);
+    case REQ_MKDIR:
+        return makeDir(packetCmd);
+    default:
+        fprintf(stderr, "Invalid command code: %u\n", packetCmd->cmdCode_);
+        return -1;
+    }
 }

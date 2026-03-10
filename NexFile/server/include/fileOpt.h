@@ -1,29 +1,21 @@
 #ifndef __FILEOPT_H__
 #define __FILEOPT_H__
+#include "../../shared/protocol.h"
 
-typedef struct FileOpt
-{
-    int fd;
-    char *fileName;
-    char *filePath;
-    char *fileType;
-    long fileSize;
-} FileOpt;
+int changeDir(PacketCmd_t *packetCmd);
 
-int changeDir(const char *dirPath);
+int listDir(PacketCmd_t *packetCmd);
 
-int listDir(const char *dirPath);
+int printDir(PacketCmd_t *packetCmd);
 
-int printDir(const char *dirPath);
+int getFiles(PacketCmd_t *packetCmd);
 
-int getFiles(const char *dirPath);
+int putsFile(PacketCmd_t *packetCmd);
 
-int putsFile(FileOpt *fileOpt);
+int removeFile(PacketCmd_t *packetCmd);
 
-int removeFile(const char *filePath);
+int makeDir(PacketCmd_t *packetCmd);
 
-int makeDir(const char *dirPath);
-
-int choiceFileOpt(const char *cmd, const char *arg, FileOpt *fileOpt);
+int choiceFileOpt(PacketCmd_t *packetCmd);
 
 #endif
