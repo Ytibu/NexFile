@@ -4,6 +4,7 @@
 #include "../include/threadPool.h"
 #include "../include/epoll.h"
 #include "../include/recvCmd.h"
+#include "../include/sendMessage.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,71 +37,117 @@ int makeWorker(ThreadPool_t *pthreadPool)
     return 0;
 }
 
+static void handleClient(int clientFd)
+{
+    int epfd = epoll_create(1);
+    if (epfd < 0)
+    {
+        perror("epoll_create");
+        close(clientFd);
+        return;
+    }
+
+    if (epollADD(epfd, clientFd) < 0)
+    {
+        perror("epollADD");
+        close(epfd);
+        close(clientFd);
+        return;
+    }
+
+    int authRet = UserAuthen(clientFd);
+    if (authRet <= 0)
+    {
+        if (authRet == 0)
+        {
+            printf("Client FD %d authentication failed.\n", clientFd);
+        }
+        else
+        {
+            perror("UserAuthen");
+        }
+        close(epfd);
+        close(clientFd);
+        return;
+    }
+
+    while (1)
+    {
+        
+        struct epoll_event readySet[1024];
+        int readyNum = epoll_wait(epfd, readySet, 1024, -1);
+        if (readyNum < 0)
+        {
+            if (errno == EINTR)
+            {
+                continue;
+            }
+            perror("epoll_wait");
+            break;
+        }
+
+        int shouldClose = 0;
+        for (int i = 0; i < readyNum; ++i)
+        {
+            if (readySet[i].data.fd != clientFd)
+            {
+                continue;
+            }
+
+            packetCmd_t header;
+            int ret = recvCmd(clientFd, &header);
+            if (ret > 0)
+            {
+                printf("Received command code: %u, data length: %s\n", header.cmdCode_, header.data_);
+                continue;
+            }
+
+            if (ret == 0)
+            {
+                printf("Client FD %d closed the connection.\n", clientFd);
+            }
+            else
+            {
+                perror("recvCmd");
+            }
+            shouldClose = 1;
+            break;
+        }
+
+        if (shouldClose)
+        {
+            break;
+        }
+    }
+
+    close(epfd);
+    close(clientFd);
+}
+
 void *workerFunc(void *arg)
 {
     ThreadPool_t *threadPool = (ThreadPool_t *)arg;
-    (void)threadPool;
     while (1)
     {
-        // 线程池退出标志
         pthread_mutex_lock(&threadPool->mutex_);
         while (threadPool->exitFlag_ == 0 && threadPool->ptaskQueue_.queueSize_ <= 0)
         {
             pthread_cond_wait(&threadPool->cond_, &threadPool->mutex_);
         }
+
         if (threadPool->exitFlag_ == 1)
         {
             pthread_mutex_unlock(&threadPool->mutex_);
             printf("Worker thread %lu exiting...\n", pthread_self());
-            pthread_exit(NULL);
+            return NULL;
         }
 
-        // 线程等待条件变量
-        int clientFd = threadPool->ptaskQueue_.phead_->netFd; // 从任务队列头部获取客户端文件描述符
-        taskQueuePop(&threadPool->ptaskQueue_);               // 从任务队列中取出一个任务
+        int clientFd = threadPool->ptaskQueue_.phead_->netFd;
+        taskQueuePop(&threadPool->ptaskQueue_);
         pthread_mutex_unlock(&threadPool->mutex_);
 
-        // 处理任务
         printf("Worker thread %lu processing client FD: %d\n", pthread_self(), clientFd);
-        // 这里可以添加具体的任务处理逻辑，例如读取客户端请求、处理数据、发送响应等
-
-        int epfd = epoll_create(1); // 将客户端文件描述符添加到epoll实例中，等待事件发生
-        epollADD(epfd, clientFd);   // 使用边缘触发模式监听客户端文件描述符的可读事件
-
-        while (1)
-        {
-            struct epoll_event readySet[1024];
-            int readyNum = epoll_wait(epfd, readySet, 1024, -1); // 等待事件发生
-
-            for (int i = 0; i < readyNum; ++i)
-            {
-                if (readySet[i].data.fd == clientFd)
-                { // 可读事件
-                    // 处理可读事件，例如读取客户端请求数据
-                    char buffer[1024];
-                    memset(buffer, 0, sizeof(buffer));
-                    PacketCmd_t header;
-                    int ret = recvCmd(clientFd, &header);
-                    // 处理接收到的命令，例如根据header.cmdCode_执行相应的操作
-                    if (ret > 0)
-                    {
-                        printf("Received command code: %u, data length: %s\n", header.cmdCode_, header.data_);
-                    }
-                    else if (ret == 0)
-                    {
-                        printf("Client FD %d closed the connection.\n", clientFd);
-                        close(clientFd); // 关闭客户端文件描述符
-                        break;           // 退出循环，等待下一个任务
-                    }
-                    else
-                    {
-                        perror("recvCmd");
-                        close(clientFd); // 关闭客户端文件描述符
-                        break;           // 退出循环，等待下一个任务
-                    }
-                }
-            }
-        }
+        handleClient(clientFd);
     }
 
     return NULL;

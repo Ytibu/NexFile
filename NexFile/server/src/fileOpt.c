@@ -1,34 +1,54 @@
 #include "../include/fileOpt.h"
 
 #include <stdio.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
-int changeDir(PacketCmd_t *packetCmd)
+int changeDir(packetCmd_t *packetCmd)
 {
     if(packetCmd->data_ == NULL)
     {
-        
+        return 0;
     }
+} 
+
+int listDir(packetCmd_t *packetCmd)
+{}
+
+int printDir(packetCmd_t *packetCmd)
+{}
+
+int getFiles(packetCmd_t *packetCmd)
+{
+    
 }
 
-int listDir(PacketCmd_t *packetCmd)
+int putsFile(packetCmd_t *packetCmd)
 {}
 
-int printDir(PacketCmd_t *packetCmd)
-{}
+int removeFile(packetCmd_t *packetCmd)
+{
+    int unlink_ret = unlink(packetCmd->data_);
+    if(unlink_ret == -1){
+        perror("unlink");
+        return -1;
+    }
 
-int getFiles(PacketCmd_t *packetCmd)
-{}
+    return 0;
+}
 
-int putsFile(PacketCmd_t *packetCmd)
-{}
+int makeDir(packetCmd_t *packetCmd)
+{
+    int mkd_ret = mkdir(packetCmd->data_, 0755);
+    if(mkd_ret == -1)
+    {
+        perror("mkdir failed");
+        return -1;
+    }
+    return 0;
+}
 
-int removeFile(PacketCmd_t *packetCmd)
-{}
-
-int makeDir(PacketCmd_t *packetCmd)
-{}
-
-int choiceFileOpt(PacketCmd_t *packetCmd)
+int choiceFileOpt(packetCmd_t *packetCmd)
 {
     switch (packetCmd->cmdCode_)
     {

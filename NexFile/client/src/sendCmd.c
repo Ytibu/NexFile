@@ -6,11 +6,13 @@
 #include <sys/socket.h>
 
 
-int sendCmd(int sockfd, PacketCmd_t *pcmdArg)
+int sendCmd(int sockfd, packetCmd_t *pcmdArg)
 {
     ssize_t n = send(sockfd, &pcmdArg->cmdCode_, sizeof(uint32_t), 0);
     ERROR_CHECK(n, -1, "send cmdCode");
-    n = send(sockfd, &pcmdArg->length_, sizeof(uint32_t), 0);
+    n = send(sockfd, &pcmdArg->argFlag_, sizeof(uint32_t), 0);
+    ERROR_CHECK(n, -1, "send argFlag");
+    n = send(sockfd, &pcmdArg->length_, sizeof(int), 0);
     ERROR_CHECK(n, -1, "send length");
     n = send(sockfd, pcmdArg->data_, pcmdArg->length_, 0);
     ERROR_CHECK(n, -1, "send data");

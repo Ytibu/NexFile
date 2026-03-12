@@ -2,20 +2,20 @@
 #define __FILEOPT_H__
 #include "../../shared/protocol.h"
 
-int changeDir(PacketCmd_t *packetCmd);
+int changeDir(packetCmd_t *packetCmd);
 
-int listDir(PacketCmd_t *packetCmd);
+int listDir(packetCmd_t *packetCmd);
 
-int printDir(PacketCmd_t *packetCmd);
+int printDir(packetCmd_t *packetCmd);
 
-int getFiles(PacketCmd_t *packetCmd);
+int getFiles(packetCmd_t *packetCmd);
 
-int putsFile(PacketCmd_t *packetCmd);
+int putsFile(packetCmd_t *packetCmd);
 
-int removeFile(PacketCmd_t *packetCmd);
+int removeFile(packetCmd_t *packetCmd);
 
-int makeDir(PacketCmd_t *packetCmd);
+int makeDir(packetCmd_t *packetCmd);
 
-int choiceFileOpt(PacketCmd_t *packetCmd);
+int choiceFileOpt(packetCmd_t *packetCmd);
 
 #endif

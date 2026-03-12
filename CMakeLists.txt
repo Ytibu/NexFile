@@ -33,7 +33,7 @@ target_include_directories(server PRIVATE
     "${CMAKE_SOURCE_DIR}/NexFile/shared"
 )
 # server 依赖 pthread 线程库
-target_link_libraries(server PRIVATE pthread)
+target_link_libraries(server PRIVATE pthread crypt)
 
 # client 可执行文件与头文件路径
 add_executable(client ${CLIENT_SOURCES})
@@ -41,3 +41,4 @@ target_include_directories(client PRIVATE
     "${CMAKE_SOURCE_DIR}/NexFile/client/include"
     "${CMAKE_SOURCE_DIR}/NexFile/shared"
 )
+target_link_libraries(client PRIVATE crypt)

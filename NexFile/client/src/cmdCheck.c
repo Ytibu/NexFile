@@ -10,7 +10,7 @@
 
 // int cmdCheck(char *cmd, PacketCmd_t *pcmdArg); // 综合切割和验证命令，返回1合法，0不合法
 
-int cmdCut(char *cmd, PacketCmd_t *pcmdArg)
+int cmdCut(char *cmd, packetCmd_t *pcmdArg)
 {
     char *token;
     char *saveptr = NULL;
@@ -31,28 +31,28 @@ int cmdCut(char *cmd, PacketCmd_t *pcmdArg)
         return -1;
     }
     pcmdArg->cmdCode_ = str_to_cmdcode(token);
-
+    pcmdArg->argFlag_ = 0; // 默认没有参数
     // 继续获取参数，只有拿到有效 token 时才计数
     while ((token = strtok_r(NULL, " \t\r\n", &saveptr)) != NULL) {
+        pcmdArg->argFlag_ = 1; // 标记有参数
         strcpy(pcmdArg->data_, token); // 这里假设只有一个参数，如果有多个参数需要修改结构体和逻辑
         pcmdArg->length_ = strlen(token);
     }
 
-    //printf("cmdArg: cmd=%d, arg=%s\n", pcmdArg->cmdCode_, pcmdArg->data_ ? pcmdArg->data_ : "(null)");
 
     return 0;
 }
 
-int cmdVeri(PacketCmd_t *pcmdArg)
+int cmdVeri(packetCmd_t *pcmdArg)
 {
-    if (pcmdArg->cmdCode_ != REQ_INVALID)
+    if (pcmdArg->cmdCode_ == REQ_INVALID)
     {
-        return 1; // 命令合法
+        return -1; // 命令不合法
     }
-    return 0; // 命令不合法
+    return 0; // 命令合法
 }
 
-int cmdCheck(char *cmd, PacketCmd_t *pcmdArg)
+int cmdCheck(char *cmd, packetCmd_t *pcmdArg)
 {
     cmdCut(cmd, pcmdArg);
     return cmdVeri(pcmdArg);
