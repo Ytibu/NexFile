@@ -4,12 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-
-// int cmdCut(char *cmd, PacketCmd_t *p);  // 切割命令，返回切割后的参数数量
-// int cmdVeri(PacketCmd_t *pcmdArg); // 验证命令是否合法，返回1合法，0不合法
-
-// int cmdCheck(char *cmd, PacketCmd_t *pcmdArg); // 综合切割和验证命令，返回1合法，0不合法
-
 int cmdCut(char *cmd, packetCmd_t *pcmdArg)
 {
     char *token;
@@ -20,23 +14,41 @@ int cmdCut(char *cmd, packetCmd_t *pcmdArg)
         return -1;
     }
 
-    strcpy(pcmdArg->data_, ""); // 初始化参数为空字符串
+    // 初始化输出结构
+    pcmdArg->cmdCode_ = REQ_INVALID;
+    pcmdArg->argFlag_ = 0;
     pcmdArg->length_ = 0;
+    pcmdArg->data_[0] = '\0';
 
     // 获取第一个标记
     token = strtok_r(cmd, " \t\r\n", &saveptr);
     if (token == NULL)
     {
-        pcmdArg->cmdCode_ = REQ_INVALID;
         return -1;
     }
+
     pcmdArg->cmdCode_ = str_to_cmdcode(token);
-    pcmdArg->argFlag_ = 0; // 默认没有参数
-    // 继续获取参数，只有拿到有效 token 时才计数
-    while ((token = strtok_r(NULL, " \t\r\n", &saveptr)) != NULL) {
-        pcmdArg->argFlag_ = 1; // 标记有参数
-        strcpy(pcmdArg->data_, token); // 这里假设只有一个参数，如果有多个参数需要修改结构体和逻辑
-        pcmdArg->length_ = strlen(token);
+    token = strtok_r(NULL, " \t\r\n", &saveptr);
+    if (token != NULL) {
+        size_t len = strlen(token);
+        if(len >= sizeof(pcmdArg->data_)) {
+            pcmdArg->cmdCode_ = REQ_INVALID;
+            return -1; // 参数过长
+        }
+
+        memcpy(pcmdArg->data_, token, len + 1);
+        pcmdArg->argFlag_ = 1;
+        pcmdArg->length_ = (int)len;
+
+        // 若还有更多参数，判定为非法（可按需求改成支持多参数）
+        if (strtok_r(NULL, " \t\r\n", &saveptr) != NULL)
+        {
+            pcmdArg->cmdCode_ = REQ_INVALID;
+            pcmdArg->argFlag_ = 0;
+            pcmdArg->length_ = 0;
+            pcmdArg->data_[0] = '\0';
+            return -1;
+        }
     }
 
 
@@ -54,6 +66,9 @@ int cmdVeri(packetCmd_t *pcmdArg)
 
 int cmdCheck(char *cmd, packetCmd_t *pcmdArg)
 {
-    cmdCut(cmd, pcmdArg);
+    if(cmdCut(cmd, pcmdArg) != 0)
+    {
+        return -1; // 切割命令失败，命令不合法
+    }
     return cmdVeri(pcmdArg);
 }

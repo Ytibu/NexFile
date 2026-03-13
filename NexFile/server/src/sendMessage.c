@@ -77,21 +77,21 @@ int UserAuthen(int sockfd)
     memcpy(cryptPassword, train.data_, train.length_);
     cryptPassword[train.length_] = '\0';
 
-
+    // 用户密码对比：0表示认证成功，-1表示认证失败，1表示查询用户信息失败
     int auth_ret = authenticateUser(username, cryptPassword);
-    if(auth_ret == 1)
+    if(auth_ret == 0)
     {
         const char *success_msg = "AUTH_SUCCESS";
         send(sockfd, success_msg, strlen(success_msg), 0);
-        return 1;
+        return 0; // 认证成功
     }
 
-    if (auth_ret == 0)
+    if (auth_ret == 1 || auth_ret == -1)
     {
         const char *fail_msg = "AUTH_FAIL";
         send(sockfd, fail_msg, strlen(fail_msg), 0);
-        return 0;
+        return auth_ret; // -1表示认证失败，1表示查询用户信息失败
     }
 
-    return -1;
+    return 0;
 }

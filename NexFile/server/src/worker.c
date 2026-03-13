@@ -39,6 +39,25 @@ int makeWorker(ThreadPool_t *pthreadPool)
 
 static void handleClient(int clientFd)
 {
+
+    int authRet = 1;
+    while (authRet != 0)
+    {
+        authRet = UserAuthen(clientFd);
+        if (authRet != 0)
+        {
+            if (authRet == -1)
+            {
+                printf("Client FD %d authentication failed.\n", clientFd);
+            }
+            else
+            {
+                printf("Client FD %d user information query failed.\n", clientFd);
+            }
+            continue;
+        }
+    }
+
     int epfd = epoll_create(1);
     if (epfd < 0)
     {
@@ -55,25 +74,9 @@ static void handleClient(int clientFd)
         return;
     }
 
-    int authRet = UserAuthen(clientFd);
-    if (authRet <= 0)
-    {
-        if (authRet == 0)
-        {
-            printf("Client FD %d authentication failed.\n", clientFd);
-        }
-        else
-        {
-            perror("UserAuthen");
-        }
-        close(epfd);
-        close(clientFd);
-        return;
-    }
-
     while (1)
     {
-        
+
         struct epoll_event readySet[1024];
         int readyNum = epoll_wait(epfd, readySet, 1024, -1);
         if (readyNum < 0)
@@ -96,9 +99,19 @@ static void handleClient(int clientFd)
 
             packetCmd_t header;
             int ret = recvCmd(clientFd, &header);
+            printf("recvCmd returned: %d\n", ret);
             if (ret > 0)
             {
-                printf("Received command code: %u, data length: %s\n", header.cmdCode_, header.data_);
+                if (header.argFlag_ == 1)
+                {
+                    printf("Parsed command: cmdCode=%d, argFlag=%d, length=%d, data=%s\n",
+                           header.cmdCode_, header.argFlag_, header.length_, header.data_);
+                }
+                else
+                {
+                    printf("Parsed command: cmdCode=%d, argFlag=%d\n",
+                           header.cmdCode_, header.argFlag_);
+                }
                 continue;
             }
 

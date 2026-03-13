@@ -8,14 +8,11 @@
 
 int sendCmd(int sockfd, packetCmd_t *pcmdArg)
 {
-    ssize_t n = send(sockfd, &pcmdArg->cmdCode_, sizeof(uint32_t), 0);
-    ERROR_CHECK(n, -1, "send cmdCode");
-    n = send(sockfd, &pcmdArg->argFlag_, sizeof(uint32_t), 0);
-    ERROR_CHECK(n, -1, "send argFlag");
-    n = send(sockfd, &pcmdArg->length_, sizeof(int), 0);
-    ERROR_CHECK(n, -1, "send length");
-    n = send(sockfd, pcmdArg->data_, pcmdArg->length_, 0);
-    ERROR_CHECK(n, -1, "send data");
-    
+    int total_len = sizeof(packetCmd_t);
+    int sent = send(sockfd, pcmdArg, total_len, 0);
+    if (sent != total_len) {
+        perror("sendCmd");
+        return -1;
+    }
     return 0;
-}  
+}

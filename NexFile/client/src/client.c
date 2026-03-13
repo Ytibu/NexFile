@@ -71,7 +71,7 @@ static int handle_stdin_event(int sockfd)
 
     packetCmd_t pcmdArg;
     int check_ret = cmdCheck(cmd, &pcmdArg);
-    if (check_ret == 0)
+    if (check_ret != 0)
     {
         printf("%s: command not found\n", cmd);
         return 0;
