@@ -37,25 +37,40 @@ int makeWorker(ThreadPool_t *pthreadPool)
     return 0;
 }
 
-static void handleClient(int clientFd)
+static int handle_authen_event(int clientFd)
 {
-
-    int authRet = 1;
-    while (authRet != 0)
+    while (1)
     {
-        authRet = UserAuthen(clientFd);
-        if (authRet != 0)
+        int authRet = UserAuthen(clientFd);
+        if (authRet == AUTH_RESULT_OK)
         {
-            if (authRet == -1)
-            {
-                printf("Client FD %d authentication failed.\n", clientFd);
-            }
-            else
-            {
-                printf("Client FD %d user information query failed.\n", clientFd);
-            }
+            printf("Client FD %d authenticated successfully.\n", clientFd);
+            return 0;
+        }
+
+        if (authRet == AUTH_RESULT_FAIL)
+        {
+            printf("Client FD %d authentication failed.\n", clientFd);
             continue;
         }
+
+        if (authRet == AUTH_RESULT_USER_QUERY_FAIL)
+        {
+            printf("Client FD %d user information query failed.\n", clientFd);
+            continue;
+        }
+
+        printf("Client FD %d disconnected or I/O error during authentication.\n", clientFd);
+        return -1;
+    }
+}
+
+static void handleClient(int clientFd)
+{
+    if (handle_authen_event(clientFd) != 0) // 认证阶段连接断开或I/O异常
+    {
+        close(clientFd);
+        return;
     }
 
     int epfd = epoll_create(1);
@@ -99,32 +114,30 @@ static void handleClient(int clientFd)
 
             packetCmd_t header;
             int ret = recvCmd(clientFd, &header);
-            printf("recvCmd returned: %d\n", ret);
-            if (ret > 0)
-            {
-                if (header.argFlag_ == 1)
-                {
-                    printf("Parsed command: cmdCode=%d, argFlag=%d, length=%d, data=%s\n",
-                           header.cmdCode_, header.argFlag_, header.length_, header.data_);
-                }
-                else
-                {
-                    printf("Parsed command: cmdCode=%d, argFlag=%d\n",
-                           header.cmdCode_, header.argFlag_);
-                }
-                continue;
-            }
-
             if (ret == 0)
             {
                 printf("Client FD %d closed the connection.\n", clientFd);
+                shouldClose = 1;
+                break;
+            }
+            else if (ret < 0)
+            {
+                printf("Error receiving command from client FD %d.\n", clientFd);
+                shouldClose = 1;
+                break;
+            }
+
+            if (header.argFlag_ == 1)
+            {
+                printf("Parsed command: cmdCode=%d, argFlag=%d, length=%d, data=%s\n",
+                       header.cmdCode_, header.argFlag_, header.length_, header.data_);
             }
             else
             {
-                perror("recvCmd");
+                printf("Parsed command: cmdCode=%d, argFlag=%d\n",
+                       header.cmdCode_, header.argFlag_);
             }
-            shouldClose = 1;
-            break;
+
         }
 
         if (shouldClose)

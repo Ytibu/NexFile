@@ -46,13 +46,20 @@ int handle_authentication(int sockfd, const char *username, const char *password
         return -1;
     }
 
-    handlePassword(sockfd, username, password); // 发送用户名和加密后的密码
+    if (handlePassword(sockfd, username, password) != 0) // 发送用户名和加密后的密码
+    {
+        return -1;
+    }
 
     char auth_response[64] = {0};
     ssize_t n = recv(sockfd, auth_response, sizeof(auth_response) - 1, 0);
-    if (n <= 0)
+    if (n < 0)
     {
         perror("recv");
+        return -1;
+    }else if (n == 0)
+    {
+        printf("Server closed the connection during authentication.\n");
         return -1;
     }
     auth_response[n] = '\0'; // 确保字符串以 null 结尾

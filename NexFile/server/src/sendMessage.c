@@ -42,17 +42,17 @@ int UserAuthen(int sockfd)
     int ret = recvn(sockfd, &train.length_, sizeof(train.length_));
     if (ret <= 0)
     {
-        return -1;
+        return AUTH_RESULT_IO_ERROR;
     }
     if (train.length_ < 0 || train.length_ > trainDataCap)
     {
         errno = EMSGSIZE;
-        return -1;
+        return AUTH_RESULT_IO_ERROR;
     }
     ret = recvn(sockfd, train.data_, train.length_);
     if (ret <= 0)
     {
-        return -1;
+        return AUTH_RESULT_IO_ERROR;
     }
     memcpy(username, train.data_, train.length_);
     username[train.length_] = '\0';
@@ -62,36 +62,43 @@ int UserAuthen(int sockfd)
     ret = recvn(sockfd, &train.length_, sizeof(train.length_));
     if (ret <= 0)
     {
-        return -1;
+        return AUTH_RESULT_IO_ERROR;
     }
     if (train.length_ < 0 || train.length_ > trainDataCap)
     {
         errno = EMSGSIZE;
-        return -1;
+        return AUTH_RESULT_IO_ERROR;
     }
     ret = recvn(sockfd, train.data_, train.length_);
     if (ret <= 0)
     {
-        return -1;
+        return AUTH_RESULT_IO_ERROR;
     }
     memcpy(cryptPassword, train.data_, train.length_);
     cryptPassword[train.length_] = '\0';
 
     // 用户密码对比：0表示认证成功，-1表示认证失败，1表示查询用户信息失败
     int auth_ret = authenticateUser(username, cryptPassword);
-    if(auth_ret == 0)
+    if (auth_ret == AUTH_RESULT_OK)
     {
         const char *success_msg = "AUTH_SUCCESS";
-        send(sockfd, success_msg, strlen(success_msg), 0);
-        return 0; // 认证成功
+        if (send(sockfd, success_msg, strlen(success_msg), MSG_NOSIGNAL) < 0)
+        {
+            return AUTH_RESULT_IO_ERROR;
+        }
+        return AUTH_RESULT_OK;
     }
 
-    if (auth_ret == 1 || auth_ret == -1)
+    if (auth_ret == AUTH_RESULT_USER_QUERY_FAIL || auth_ret == AUTH_RESULT_FAIL)
     {
         const char *fail_msg = "AUTH_FAIL";
-        send(sockfd, fail_msg, strlen(fail_msg), 0);
-        return auth_ret; // -1表示认证失败，1表示查询用户信息失败
+        if (send(sockfd, fail_msg, strlen(fail_msg), MSG_NOSIGNAL) < 0)
+        {
+            return AUTH_RESULT_IO_ERROR;
+        }
+        return auth_ret;
     }
 
-    return 0;
+    // 防御式兜底：未知认证结果按查询用户失败处理，保留重试语义
+    return AUTH_RESULT_USER_QUERY_FAIL;
 }

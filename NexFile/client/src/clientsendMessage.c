@@ -6,13 +6,13 @@
 #include <string.h>
 #include <sys/socket.h>
 
-static int sendAll(int fd, const void *buf, size_t len)
+int sendn(int sockfd, const void *buf, long total)
 {
     const char *p = (const char *)buf;
-    size_t sent = 0;
-    while (sent < len)
+    long sent = 0;
+    while (sent < total)
     {
-        ssize_t sret = send(fd, p + sent, len - sent, MSG_NOSIGNAL);
+        ssize_t sret = send(sockfd, p + sent, total - sent, MSG_NOSIGNAL);
         if (sret < 0)
         {
             if (errno == EINTR)
@@ -21,9 +21,9 @@ static int sendAll(int fd, const void *buf, size_t len)
             }
             return -1;
         }
-        sent += (size_t)sret;
+        sent += (long)sret;
     }
-    return 0;
+    return sent;
 }
 
 int sendPassword(int fd, const char *username, const char *password)
@@ -44,7 +44,7 @@ int sendPassword(int fd, const char *username, const char *password)
     memset(&train, 0, sizeof(train));
     train.length_ = (int)usernameLen;
     memcpy(train.data_, username, usernameLen);
-    if (sendAll(fd, &train, sizeof(train.length_) + (size_t)train.length_) < 0)
+    if (sendn(fd, &train, sizeof(train.length_) + (size_t)train.length_) < 0)
     {
         return -1;
     }
@@ -52,7 +52,7 @@ int sendPassword(int fd, const char *username, const char *password)
     memset(&train, 0, sizeof(train));
     train.length_ = (int)passwordLen;
     memcpy(train.data_, password, passwordLen);
-    if (sendAll(fd, &train, sizeof(train.length_) + (size_t)train.length_) < 0)
+    if (sendn(fd, &train, sizeof(train.length_) + (size_t)train.length_) < 0)
     {
         return -1;
     }

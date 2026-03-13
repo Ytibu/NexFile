@@ -1,8 +1,9 @@
-#include "../include/cmdCheck.h"
+#include "../include/cmdOpt.h"
+
+#include "../include/clientsendMessage.h"
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <sys/socket.h>
 
 int cmdCut(char *cmd, packetCmd_t *pcmdArg)
 {
@@ -29,9 +30,11 @@ int cmdCut(char *cmd, packetCmd_t *pcmdArg)
 
     pcmdArg->cmdCode_ = str_to_cmdcode(token);
     token = strtok_r(NULL, " \t\r\n", &saveptr);
-    if (token != NULL) {
+    if (token != NULL)
+    {
         size_t len = strlen(token);
-        if(len >= sizeof(pcmdArg->data_)) {
+        if (len >= sizeof(pcmdArg->data_))
+        {
             pcmdArg->cmdCode_ = REQ_INVALID;
             return -1; // 参数过长
         }
@@ -51,7 +54,6 @@ int cmdCut(char *cmd, packetCmd_t *pcmdArg)
         }
     }
 
-
     return 0;
 }
 
@@ -66,9 +68,23 @@ int cmdVeri(packetCmd_t *pcmdArg)
 
 int cmdCheck(char *cmd, packetCmd_t *pcmdArg)
 {
-    if(cmdCut(cmd, pcmdArg) != 0)
+    int ret = cmdCut(cmd, pcmdArg);
+    if (ret != 0)
     {
-        return -1; // 切割命令失败，命令不合法
+        return ret; // 切割命令失败，命令不合法
     }
-    return cmdVeri(pcmdArg);
+    ret = cmdVeri(pcmdArg);
+    return ret; // 返回0表示命令合法，非0表示命令不合法
+}
+
+int sendCmd(int sockfd, packetCmd_t *pcmdArg)
+{
+    int total_len = sizeof(packetCmd_t);
+    int sent = sendn(sockfd, pcmdArg, total_len);
+    if (sent < 0)
+    {
+        perror("sendCmd");
+        return -1;
+    }
+    return sent;
 }
