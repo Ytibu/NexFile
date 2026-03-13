@@ -4,63 +4,25 @@
 #include <errno.h>
 #include <sys/socket.h>
 
-// 解决半包问题，要一次性读取完所有数据
-// int recvn(int sockFd, void *buf, long total)
-// {
-//     char *p = (char *)buf;
-//     long cursize = 0;
-//     while (cursize < total)
-//     {
-//         ssize_t sret = recv(sockFd, p + cursize, total - cursize, 0);
-//         if (sret < 0)
-//         {
-//             if (errno == EINTR)
-//             {
-//                 continue;
-//             }
-//             return -1;
-//         }
-//         if (sret == 0)
-//         {
-//             return 0;
-//         }
-//         cursize += sret;
-//     }
-//     return (int)cursize;
-// }
-
 int recvCmd(int sockfd, packetCmd_t *header)
 {
-    ssize_t n = recvn(sockfd, &header->cmdCode_, sizeof(uint32_t));
-    if (n <= 0)
-    {
-        return (int)n;
-    }
+    // 接收整个结构
+    int total_len = sizeof(packetCmd_t);
+    int received = recv(sockfd, header, total_len, MSG_WAITALL);
+    printf("recvCmd: received %d bytes, expected %d bytes\n", received, total_len);
 
-    n = recvn(sockfd, &header->length_, sizeof(header->length_));
-    if (n <= 0)
+    if (received != total_len)
     {
-        return (int)n;
-    }
-
-    if (header->length_ < 0 || (size_t)header->length_ > sizeof(header->data_))
-    {
-        errno = EMSGSIZE;
+        // 处理接收错误
         return -1;
     }
 
-    // 空负载是合法场景：例如仅有命令码、没有参数（如 "cd"）。
-    if (header->length_ == 0)
+    // 可以根据实际数据长度进行验证
+    if (header->length_ > 1024)
     {
-        header->data_[0] = '\0';
-        return (int)(sizeof(uint32_t) * 2);
+        // 数据长度不合法
+        return -2;
     }
 
-    n = recvn(sockfd, header->data_, header->length_);
-    if (n <= 0)
-    {
-        return (int)n;
-    }
-
-    return (int)(sizeof(uint32_t) * 2 + header->length_);
+    return received;
 }
