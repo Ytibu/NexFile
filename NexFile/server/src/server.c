@@ -18,7 +18,6 @@ int exitPipefd[2];
 void sigchld_handler(int signum)
 {
     printf("Received signal: %d\n", signum);
-    // 等待子进程结束，避免僵尸进程
     write(exitPipefd[1], "exit", 4);
 }
 
@@ -52,7 +51,7 @@ int main(int argc, char *argv[])
 
     ThreadPool_t threadPool;
     threadPoolInit(config.threadNum, &threadPool); //  线程池初始化
-    makeWorker(&threadPool);                    // 创建多线程
+    makeWorker(&threadPool);                       // 创建多线程
 
     int sockFd = socket(AF_INET, SOCK_STREAM, 0);
     ERROR_CHECK(sockFd, -1, "socket");
@@ -81,7 +80,8 @@ int main(int argc, char *argv[])
             if (events[i].data.fd == sockFd)
             {
                 int clientFd = accept(sockFd, NULL, NULL);
-                if (clientFd < 0) {
+                if (clientFd < 0)
+                {
                     perror("accept");
                     continue;
                 }
@@ -111,7 +111,6 @@ int main(int argc, char *argv[])
                 free(config.configPath);
                 close(epFd);
                 return 0;
-
             }
         }
     }

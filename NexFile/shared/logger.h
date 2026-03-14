@@ -8,62 +8,84 @@
 #include <unistd.h>
 #include <syslog.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
+#include <fcntl.h>
 #include <time.h>
 #include <stdarg.h>
 
-static inline void Daemon(void)
-{
-    // 新建会话
-    if (fork() < 0) {
-        exit(1);
-    } else if (fork() > 0) {
-        exit(0);
-    }
-    setsid();
+#define LOG_COLOR_RESET   "\x1b[0m"
+#define LOG_COLOR_FATAL   "\x1b[1;35m"
+#define LOG_COLOR_ERROR   "\x1b[1;31m"
+#define LOG_COLOR_INFO    "\x1b[1;32m"
+#define LOG_COLOR_DEBUG   "\x1b[1;36m"
 
-    // 关闭设备
-    for (int i = 0; i < 1023; ++i) {
-        close(i);
-    }
-
-    // 修改环境属性
-    chdir("/");
-    umask(0);
-}
-
-static inline void SYSLOG_IMPL(const char *file, const char *func, int line, const char *fmt, ...)
-{
-    char message[1024];
-    va_list args;
-
-    va_start(args, fmt);
-    vsnprintf(message, sizeof(message), fmt, args);
-    va_end(args);
-
-    // 写入到系统日志：时间 | 级别 | 文件:函数:行号 | 消息
-    syslog(LOG_INFO,
-           "| %-5s | %s:%s:%d | %s",
-           "INFO", file, func, line, message);
-}
-
-// 重要内容写入 LOG_INFO 到 /var/log/syslog
 #define SYSLOG(fmt, ...) \
-    SYSLOG_IMPL(__FILE__, __func__, __LINE__, (fmt), ##__VA_ARGS__)
+    do { \
+        pid_t _syslog_pid = fork(); \
+        if (_syslog_pid == 0) { \
+            if (setsid() < 0) { \
+                _exit(1); \
+            } \
+            pid_t _syslog_pid2 = fork(); \
+            if (_syslog_pid2 < 0) { \
+                _exit(1); \
+            } \
+            if (_syslog_pid2 > 0) { \
+                _exit(0); \
+            } \
+            openlog("NexFile", LOG_PID | LOG_NDELAY, LOG_USER); \
+            syslog(LOG_INFO, "| %-5s | %s:%s:%d | " fmt, \
+                   "INFO", __FILE__, __func__, __LINE__, ##__VA_ARGS__); \
+            closelog(); \
+            _exit(0); \
+        } else if (_syslog_pid > 0) { \
+            (void)waitpid(_syslog_pid, NULL, 0); \
+        } else { \
+            openlog("NexFile", LOG_PID | LOG_NDELAY, LOG_USER); \
+            syslog(LOG_INFO, "| %-5s | %s:%s:%d | " fmt, \
+                   "INFO", __FILE__, __func__, __LINE__, ##__VA_ARGS__); \
+            closelog(); \
+        } \
+    } while (0)
 
-// num为函数返回值，expect为期望错误值，message为错误信息
-#define ERROR_CHECK(num, expect, message) do{ \
-    if ((num) == (expect)) { \
-        fprintf(stderr, "[ERROR] %s:%d %s() | %s | errno=%d(%s)\n", \
-                __FILE__, __LINE__, __func__, (message), errno, strerror(errno)); \
-        exit(1); \
-    } \
-} while(0)
+#define ERROR_CHECK(num, expect, message)                     \
+               do                                                        \
+               {                                                         \
+                   if ((num) == (expect))                                \
+                   {                                                     \
+                       fprintf(stderr, LOG_COLOR_ERROR "[ERROR]" LOG_COLOR_RESET " %s:%d %s() | %s \n", \
+                               __FILE__, __LINE__, __func__, (message)); \
+                       exit(1);                                          \
+                   }                                                     \
+               } while (0)
 
-#define ARGC_CHECK(argc, num, message) do{ \
-    if(argc != num){ \
-        fprintf(stderr, "%s\n", message); \
-        exit(1); \
-    } \
-} while(0)
+#define ARGC_CHECK(argc, num, message)        \
+               do                                        \
+               {                                         \
+                   if (argc != num)                      \
+                   {                                     \
+                       fprintf(stderr, "%s\n", message); \
+                       exit(1);                          \
+                   }                                     \
+               } while (0)
+
+#define LOG_FATAL(fmt, ...) \
+    do{\
+        fprintf(stderr, \
+        LOG_COLOR_FATAL "[FATAL]" LOG_COLOR_RESET " %s:%d %s() | " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__); \
+        exit(1);\
+    } while (0)
+
+#define LOG_ERROR(fmt, ...) \
+    fprintf(stderr, LOG_COLOR_ERROR "[ERROR]" LOG_COLOR_RESET " %s:%d %s() | " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
+
+#define LOGINFO(fmt, ...) \
+    fprintf(stdout, LOG_COLOR_INFO "[INFO]" LOG_COLOR_RESET " %s:%d %s() | " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
+
+#ifdef LOG_DEBUG
+#undef LOG_DEBUG
+#endif
+#define LOG_DEBUG(fmt, ...) \
+    fprintf(stdout, LOG_COLOR_DEBUG "[DEBUG]" LOG_COLOR_RESET " %s:%d %s() | " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
 
 #endif

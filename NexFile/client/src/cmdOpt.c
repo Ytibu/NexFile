@@ -1,6 +1,7 @@
 #include "../include/cmdOpt.h"
 
 #include "../include/clientsendMessage.h"
+#include "../include/fileOpt.h"
 
 #include <stdio.h>
 #include <sys/socket.h>
@@ -87,4 +88,44 @@ int sendCmd(int sockfd, packetCmd_t *pcmdArg)
         return -1;
     }
     return sent;
+}
+
+// 命令处理器
+int handleCommand(int sockfd, packetCmd_t *pcmdArg)
+{
+    switch (pcmdArg->cmdCode_)
+    {
+    case REQ_CD:
+        /* code */
+        sendCmd(sockfd, pcmdArg);
+        break;
+    case REQ_LS:
+        /* code */
+        sendCmd(sockfd, pcmdArg);
+        break;
+    case REQ_MKDIR:
+        /* code */
+        sendCmd(sockfd, pcmdArg);
+        break;
+    case REQ_RM:
+        /* code */
+        sendCmd(sockfd, pcmdArg);
+        break;
+    case REQ_PUT:
+        /* code */
+        sendCmd(sockfd, pcmdArg);
+        putFile(pcmdArg->data_, sockfd);
+        break;
+    case REQ_GET:
+        /* code */
+        sendCmd(sockfd, pcmdArg);
+        getFile(sockfd);
+        break;
+    case REQ_PWD:
+        /* code */
+        sendCmd(sockfd, pcmdArg);
+        break;
+    default:
+        return -1; // 未知命令
+    }
 }

@@ -14,4 +14,7 @@ int cmdCheck(char *cmd, packetCmd_t *pcmdArg);
 // 发送命令到服务器，返回0成功，-1失败
 int sendCmd(int sockfd, packetCmd_t *pcmdArg);
 
+// 命令处理器
+int handleCommand(int sockfd, packetCmd_t *pcmdArg);
+
 #endif // __CMDOPT_H__

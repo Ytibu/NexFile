@@ -16,6 +16,14 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 # 全局编译选项：开启常用告警并保留调试信息
 add_compile_options(-Wall -Wextra -g)
 
+# 让 __FILE__ 等宏中的绝对路径显示为相对路径（GCC/Clang）
+if (CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+    add_compile_options(
+        "-fmacro-prefix-map=${CMAKE_SOURCE_DIR}/=."
+        "-ffile-prefix-map=${CMAKE_SOURCE_DIR}/=."
+    )
+endif()
+
 # 自动收集服务端源文件
 file(GLOB SERVER_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/NexFile/server/src/*.c"

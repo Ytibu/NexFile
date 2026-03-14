@@ -6,6 +6,22 @@
 #include <string.h>
 #include <sys/socket.h>
 
+int recvn(int sockFd, void *buf, long total)
+{
+    char *p = (char *)buf;
+    long cursize = 0;
+    while (cursize < total)
+    {
+        ssize_t sret = recv(sockFd, p + cursize, total - cursize, 0);
+        if (sret == 0)
+        {
+            return 1;
+        }
+        cursize += sret;
+    }
+    return 0;
+}
+
 int sendn(int sockfd, const void *buf, long total)
 {
     const char *p = (const char *)buf;

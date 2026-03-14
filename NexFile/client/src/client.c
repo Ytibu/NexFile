@@ -3,6 +3,7 @@
 #include "../include/status.h"
 #include "../include/encryption.h"
 #include "../include/epoll.h"
+#include "../include/config.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -57,7 +58,7 @@ static int handle_stdin_event(int sockfd)
 
     packetCmd_t pcmdArg;
     // 解析命令并检查合法性:返回-1表示命令不合法，0表示合法
-    int check_ret = cmdCheck(buf, &pcmdArg);    
+    int check_ret = cmdCheck(buf, &pcmdArg);
     if (check_ret != 0)
     {
         printf("%s: command not found\n", buf);
@@ -65,23 +66,25 @@ static int handle_stdin_event(int sockfd)
     }
 
     // 发送命令给服务器:返回-1表示发送失败，大于0表示发送成功
-    check_ret = sendCmd(sockfd, &pcmdArg);
-    if(check_ret < 0)
-    {
-        printf("Failed to send command to server.\n");
-        return -1;
-    }
+    // check_ret = sendCmd(sockfd, &pcmdArg);
+    // if(check_ret < 0)
+    // {
+    //     printf("Failed to send command to server.\n");
+    //     return -1;
+    // }
 
     if (pcmdArg.argFlag_ == 1)
     {
-        printf("Parsed command: cmdCode=%d, argFlag=%d, length=%d, data=%s\n",
+        LOGINFO("Parsed command: cmdCode=%d, argFlag=%d, length=%d, data=%s\n",
                pcmdArg.cmdCode_, pcmdArg.argFlag_, pcmdArg.length_, pcmdArg.data_);
     }
     else
     {
-        printf("Parsed command: cmdCode=%d, argFlag=%d\n",
+        LOGINFO("Parsed command: cmdCode=%d, argFlag=%d\n",
                pcmdArg.cmdCode_, pcmdArg.argFlag_);
     }
+
+    handleCommand(sockfd, &pcmdArg);
 
     return 0;
 }
@@ -160,36 +163,43 @@ static int handle_authen_event(int sockfd)
             continue;
         }
     }
-
+    LOGINFO("User authenticated successfully as '%s'", username);
     return 0;
 }
 
 int main(int argc, char *argv[])
 {
-    ARGC_CHECK(argc, 3, "Usage: ./client [IP_ADDRESS] [PORT]");
+    ARGC_CHECK(argc, 2, "client: ./client [config_file_path]");
+    LOGINFO("Client started with config file: %s", argv[1]);
 
-    SYSLOG("Client started with IP: %s, PORT: %s", argv[1], argv[2]);
+    // 解析配置
+    const Config_t *g_clientConfig = GetGlobalConfig();
+    if (g_clientConfig)
+    {
+        printClientConfig(&g_clientConfig);
+    }
+    else
+    {
+        fprintf(stderr, "配置文件解析失败\n");
+        return 1;
+    }
 
-    // 创建通信地址
-    struct sockaddr_in client_addr;
-    memset(&client_addr, 0, sizeof(client_addr));
-    client_addr.sin_family = AF_INET;
-    client_addr.sin_port = htons(atoi(argv[2]));
-    client_addr.sin_addr.s_addr = inet_addr(argv[1]);
+    // 获取服务器地址信息
+    struct sockaddr_in client_addr = g_clientConfig->addr;
 
     // 创建套接字并连接服务器
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     ERROR_CHECK(sockfd, -1, "socket");
     int ret = connect(sockfd, (struct sockaddr *)&client_addr, sizeof(client_addr));
     ERROR_CHECK(ret, -1, "connect");
+    LOGINFO("Connected to server at %s:%d", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 
-    SYSLOG("Connected to server at %s:%s", argv[1], argv[2]);
-
-    if (handle_authen_event(sockfd) != 0)    // 处理认证事件，直到成功登录
+    if (handle_authen_event(sockfd) != 0) // 处理认证事件，直到成功登录
     {
         close(sockfd);
         return 1;
     }
+    
 
     // 开始epoll事件循环
     int epfd = epoll_create(1);
@@ -227,13 +237,14 @@ int main(int argc, char *argv[])
                 {
                     should_exit = 1;
                     break;
-                }else if(handle_ret == 1)
+                }
+                else if (handle_ret == 1)
                 {
                     // 命令不合法，继续等待输入
                     continue;
                 }
 
-                //TODO: 处理命令输入后的其他逻辑，例如等待服务器响应等
+                // TODO: 处理命令输入后的其他逻辑，例如等待服务器响应等
             }
         }
 
