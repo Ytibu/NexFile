@@ -9,6 +9,17 @@
 #include <stdio.h>
 #include <errno.h>
 
+static Config_t globalConfig;
+static int configInitialized = 0;
+
+Config_t *getConfig()
+{   if(configInitialized == 0) {
+        parseConfig("server.conf", &globalConfig);
+        return NULL;
+    }
+    return &globalConfig;
+}
+
 struct sockaddr_in Config(Config_t *config)
 {
     struct sockaddr_in server_addr;

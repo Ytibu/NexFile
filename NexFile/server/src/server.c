@@ -3,7 +3,7 @@
 #include "../include/epoll.h"
 #include "../include/threadPool.h"
 #include "../include/taskQueue.h"
-#include "../include/configParser.h"
+#include "../include/serverConfig.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,20 +21,14 @@ void sigchld_handler(int signum)
     write(exitPipefd[1], "exit", 4);
 }
 
-//  ./server <configPath>
+
 int main(int argc, char *argv[])
 {
-    ARGC_CHECK(argc, 2, "Usage: ./server <ConfigPath>");
-
-    Config_t config = {0};
-    parseConfig(argv[1], &config);
-    struct sockaddr_in serverAddr = Config(&config);
-
-    char ipBuf[INET_ADDRSTRLEN] = {0};
-    inet_ntop(AF_INET, &serverAddr.sin_addr, ipBuf, sizeof(ipBuf));
-
-    SYSLOG("server started ip: %s, port: %d, threadNum: %d, configPath: %s",
-           ipBuf, config.port, config.threadNum, config.configPath);
+    struct sockaddr_in serverAddr;
+    memset(&serverAddr, 0, sizeof(serverAddr));
+    serverAddr.sin_family = SERVER_FAMILY;
+    serverAddr.sin_port = htons(SERVER_PORT);
+    serverAddr.sin_addr.s_addr = inet_addr(SERVER_IP);
 
     pipe(exitPipefd);
     int pid = fork();
@@ -50,7 +44,7 @@ int main(int argc, char *argv[])
     close(exitPipefd[1]);
 
     ThreadPool_t threadPool;
-    threadPoolInit(config.threadNum, &threadPool); //  线程池初始化
+    threadPoolInit(WORKER_THREAD_NUM, &threadPool); //  线程池初始化
     makeWorker(&threadPool);                       // 创建多线程
 
     int sockFd = socket(AF_INET, SOCK_STREAM, 0);
@@ -108,7 +102,7 @@ int main(int argc, char *argv[])
                 printf("all worker thread exited, exiting main thread...\n");
                 close(sockFd);
                 close(exitPipefd[0]);
-                free(config.configPath);
+
                 close(epFd);
                 return 0;
             }
@@ -118,7 +112,6 @@ int main(int argc, char *argv[])
     close(sockFd);
     close(exitPipefd[0]);
     close(epFd);
-    free(config.configPath);
 
     return 0;
 }

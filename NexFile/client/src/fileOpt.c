@@ -4,17 +4,16 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 
-#include "../include/config.h"
 #include "../shared/protocol.h"
 #include "../include/clientsendMessage.h"
+#include "../include/clientConfig.h"
 
 
 int putFile(const char *fileName, int sockFd)
 {
-    // 按结构体中的定长数组保存路径
-    const Config_t *g_clientConfig = GetGlobalConfig();
+
     char filePath[1024];
-    snprintf(filePath, sizeof(filePath), "%s%s", g_clientConfig->filePath, fileName);
+    snprintf(filePath, sizeof(filePath), "%s/%s", CLIENT_FILE_PATH, fileName);
 
     train_t train;
     train.length_ = strlen(fileName);

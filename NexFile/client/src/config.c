@@ -15,6 +15,66 @@
 
 Config_t g_clientConfig = {0};
 
+static void trimWhitespace(char *s)
+{
+    char *start = s;
+    while (*start && isspace((unsigned char)*start)) {
+        ++start;
+    }
+
+    if (start != s) {
+        memmove(s, start, strlen(start) + 1);
+    }
+
+    size_t len = strlen(s);
+    while (len > 0 && isspace((unsigned char)s[len - 1])) {
+        s[len - 1] = '\0';
+        --len;
+    }
+}
+
+static int extractXmlTagValue(const char *line,
+                              const char *tag,
+                              char *out,
+                              size_t outSize)
+{
+    if (!line || !tag || !out || outSize == 0) {
+        return 0;
+    }
+
+    char openTag[64];
+    char closeTag[64];
+    int openLen = snprintf(openTag, sizeof(openTag), "<%s>", tag);
+    int closeLen = snprintf(closeTag, sizeof(closeTag), "</%s>", tag);
+
+    if (openLen <= 0 || closeLen <= 0 ||
+        (size_t)openLen >= sizeof(openTag) ||
+        (size_t)closeLen >= sizeof(closeTag)) {
+        return 0;
+    }
+
+    const char *start = strstr(line, openTag);
+    if (!start) {
+        return 0;
+    }
+    start += (size_t)openLen;
+
+    const char *end = strstr(start, closeTag);
+    if (!end || end <= start) {
+        return 0;
+    }
+
+    size_t valueLen = (size_t)(end - start);
+    if (valueLen >= outSize) {
+        valueLen = outSize - 1;
+    }
+
+    memcpy(out, start, valueLen);
+    out[valueLen] = '\0';
+    trimWhitespace(out);
+    return 1;
+}
+
 // 解读配置文件，填充Config_t结构体
 int Config(const char *configPath, Config_t *config) {
     if (configPath == NULL || config == NULL) {
@@ -28,24 +88,40 @@ int Config(const char *configPath, Config_t *config) {
         return -1;
     }
 
-    char line[256];
+    char line[512];
     char ip[64] = {0};
+    char family[32] = {0};
     int port = 0;
-    char filePath[256] = {0};
+    char filePath[1024] = {0};
+    char valueBuf[1024];
 
     memset(config, 0, sizeof(*config));
 
     while (fgets(line, sizeof(line), fp)) {
-        // 去除换行符
-        line[strcspn(line, "\n")] = '\0';
+        if (extractXmlTagValue(line, "family", valueBuf, sizeof(valueBuf))) {
+            snprintf(family, sizeof(family), "%s", valueBuf);
+            continue;
+        }
 
-        if (sscanf(line, "ip: %63s", ip) == 1) {
+        if (extractXmlTagValue(line, "ip", valueBuf, sizeof(valueBuf))) {
+            snprintf(ip, sizeof(ip), "%s", valueBuf);
             continue;
         }
-        if (sscanf(line, "port: %d", &port) == 1) {
+
+        if (extractXmlTagValue(line, "port", valueBuf, sizeof(valueBuf))) {
+            char *endPtr = NULL;
+            long parsedPort = strtol(valueBuf, &endPtr, 10);
+            if (endPtr == valueBuf || *endPtr != '\0' || parsedPort <= 0 || parsedPort > 65535) {
+                fprintf(stderr, "配置文件中的 port 非法: %s\n", valueBuf);
+                fclose(fp);
+                return -1;
+            }
+            port = (int)parsedPort;
             continue;
         }
-        if (sscanf(line, "filePath: %255s", filePath) == 1) {
+
+        if (extractXmlTagValue(line, "localPath", valueBuf, sizeof(valueBuf))) {
+            snprintf(filePath, sizeof(filePath), "%s", valueBuf);
             continue;
         }
     }
@@ -53,6 +129,11 @@ int Config(const char *configPath, Config_t *config) {
 
     if (strlen(ip) == 0 || port == 0 || strlen(filePath) == 0) {
         fprintf(stderr, "配置文件缺少必要字段\n");
+        return -1;
+    }
+
+    if (strlen(family) > 0 && strcmp(family, "AF_INET") != 0) {
+        fprintf(stderr, "暂不支持的 family: %s\n", family);
         return -1;
     }
 

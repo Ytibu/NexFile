@@ -5,6 +5,7 @@
 #include "../include/epoll.h"
 #include "../include/recvCmd.h"
 #include "../include/sendMessage.h"
+#include "../include/cmdHandle.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -137,6 +138,8 @@ static void handleClient(int clientFd)
                 printf("Parsed command: cmdCode=%d, argFlag=%d\n",
                        header.cmdCode_, header.argFlag_);
             }
+
+            cmdParse(clientFd, &header);
 
         }
 

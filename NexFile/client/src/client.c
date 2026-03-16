@@ -3,7 +3,7 @@
 #include "../include/status.h"
 #include "../include/encryption.h"
 #include "../include/epoll.h"
-#include "../include/config.h"
+#include "../include/clientConfig.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -169,23 +169,14 @@ static int handle_authen_event(int sockfd)
 
 int main(int argc, char *argv[])
 {
-    ARGC_CHECK(argc, 2, "client: ./client [config_file_path]");
     LOGINFO("Client started with config file: %s", argv[1]);
 
-    // 解析配置
-    const Config_t *g_clientConfig = GetGlobalConfig();
-    if (g_clientConfig)
-    {
-        printClientConfig(&g_clientConfig);
-    }
-    else
-    {
-        fprintf(stderr, "配置文件解析失败\n");
-        return 1;
-    }
-
     // 获取服务器地址信息
-    struct sockaddr_in client_addr = g_clientConfig->addr;
+    struct sockaddr_in client_addr;
+    memset(&client_addr, 0, sizeof(client_addr));
+    client_addr.sin_family = CLIENT_FAMILY;
+    client_addr.sin_port = htons(CLIENT_PORT);
+    client_addr.sin_addr.s_addr = inet_addr(CLIENT_IP);
 
     // 创建套接字并连接服务器
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -199,7 +190,6 @@ int main(int argc, char *argv[])
         close(sockfd);
         return 1;
     }
-    
 
     // 开始epoll事件循环
     int epfd = epoll_create(1);
