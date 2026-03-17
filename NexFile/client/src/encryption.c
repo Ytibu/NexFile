@@ -1,6 +1,8 @@
 #include "../include/encryption.h"
 #include "../include/status.h"
 #include "../include/clientsendMessage.h"
+#include "../../shared/logger.h"
+#include "../../shared/protocol.h"
 
 #include <stdio.h>
 #include <shadow.h>
@@ -28,10 +30,11 @@ int handlePassword(int sockfd, const char *username, const char *password)
 
     char *encryptedPassword = encryptPassword(password); // 加密密码
 
+    // 成功为0，失败为-1
     ssize_t send_ret = sendPassword(sockfd, username, encryptedPassword); // 发送用户名和加密后的密码
     if (send_ret == -1)
     {
-        perror("send");
+        LOG_ERROR("Failed to send authentication information to server\n");
         return -1;
     }
 
@@ -51,19 +54,13 @@ int handle_authentication(int sockfd, const char *username, const char *password
         return -1;
     }
 
+    train_t train;
     char auth_response[64] = {0};
-    ssize_t n = recv(sockfd, auth_response, sizeof(auth_response) - 1, 0);
-    if (n < 0)
-    {
-        perror("recv");
-        return -1;
-    }else if (n == 0)
-    {
-        printf("Server closed the connection during authentication.\n");
-        return -1;
-    }
-    auth_response[n] = '\0'; // 确保字符串以 null 结尾
-    if (strcmp(auth_response, "AUTH_SUCCESS") == 0)
+    recvn(sockfd, &train.length_, sizeof(int));
+    recvn(sockfd, train.data_, train.length_);
+    memcpy(auth_response, train.data_, train.length_);
+    auth_response[train.length_] = '\0'; // 确保字符串以 null 结尾
+    if (strcmp(auth_response, "AUTH_RESULT_OK") == 0)
     {
         printf("Authentication successful. You can now enter commands.\n");
         g_clientState.is_connected = 1;

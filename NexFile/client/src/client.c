@@ -4,6 +4,7 @@
 #include "../include/encryption.h"
 #include "../include/epoll.h"
 #include "../include/clientConfig.h"
+#include "../include/fileOpt.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -65,53 +66,23 @@ static int handle_stdin_event(int sockfd)
         return 1;
     }
 
-    // 发送命令给服务器:返回-1表示发送失败，大于0表示发送成功
-    // check_ret = sendCmd(sockfd, &pcmdArg);
-    // if(check_ret < 0)
-    // {
-    //     printf("Failed to send command to server.\n");
-    //     return -1;
-    // }
-
     if (pcmdArg.argFlag_ == 1)
     {
         LOGINFO("Parsed command: cmdCode=%d, argFlag=%d, length=%d, data=%s\n",
-               pcmdArg.cmdCode_, pcmdArg.argFlag_, pcmdArg.length_, pcmdArg.data_);
+                pcmdArg.cmdCode_, pcmdArg.argFlag_, pcmdArg.length_, pcmdArg.data_);
     }
     else
     {
         LOGINFO("Parsed command: cmdCode=%d, argFlag=%d\n",
-               pcmdArg.cmdCode_, pcmdArg.argFlag_);
+                pcmdArg.cmdCode_, pcmdArg.argFlag_);
     }
 
-    handleCommand(sockfd, &pcmdArg);
+    cmdParse(sockfd, &pcmdArg); // 解析命令并执行相应操作
 
     return 0;
 }
 
-// 认证阶段探测服务端是否已断开连接
-static int check_auth_server_alive(int sockfd)
-{
-    char ch;
-    ssize_t ret = recv(sockfd, &ch, 1, MSG_PEEK | MSG_DONTWAIT);
-    if (ret == 0)
-    {
-        printf("Server closed the connection during authentication.\n");
-        return -1;
-    }
-    if (ret < 0)
-    {
-        if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
-        {
-            return 0;
-        }
-        perror("recv");
-        return -1;
-    }
-    return 0;
-}
-
-// 循环处理用户输入，直到认证成功
+// 循环处理用户输入，直到认证成功(只要返回不是0，就继续要求输入，或者发生错误退出)
 static int handle_authen_event(int sockfd)
 {
     // 直接要求认证并直接校验处理
@@ -121,20 +92,10 @@ static int handle_authen_event(int sockfd)
     printf("启动用户校验：\n");
     while (g_clientState.is_connected != 1) // 查看认证状态
     {
-        if (check_auth_server_alive(sockfd) != 0)
-        {
-            return -1;
-        }
-
         printf("输入用户名Username: ");
         if (fgets(username, sizeof(username), stdin) == NULL)
         {
             printf("Input closed while waiting for username. Exiting.\n");
-            return -1;
-        }
-
-        if (check_auth_server_alive(sockfd) != 0)
-        {
             return -1;
         }
 
@@ -148,29 +109,22 @@ static int handle_authen_event(int sockfd)
         username[strcspn(username, "\n")] = '\0';
         password[strcspn(password, "\n")] = '\0';
 
-        if (check_auth_server_alive(sockfd) != 0)
-        {
-            return -1;
-        }
-
         if (handle_authentication(sockfd, username, password) != 0)
         {
-            if (check_auth_server_alive(sockfd) != 0)
-            {
-                return -1;
-            }
             printf("用户校验失败，重新输入\n");
             continue;
         }
+        else
+        {
+            LOGINFO("User authenticated successfully as '%s'", username);
+            return 0;
+        }
     }
-    LOGINFO("User authenticated successfully as '%s'", username);
     return 0;
 }
 
-int main(int argc, char *argv[])
+int main()
 {
-    LOGINFO("Client started with config file: %s", argv[1]);
-
     // 获取服务器地址信息
     struct sockaddr_in client_addr;
     memset(&client_addr, 0, sizeof(client_addr));
@@ -185,7 +139,8 @@ int main(int argc, char *argv[])
     ERROR_CHECK(ret, -1, "connect");
     LOGINFO("Connected to server at %s:%d", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 
-    if (handle_authen_event(sockfd) != 0) // 处理认证事件，直到成功登录
+    // 处理认证事件，直到成功登录或发生错误
+    if (handle_authen_event(sockfd) != 0)
     {
         close(sockfd);
         return 1;

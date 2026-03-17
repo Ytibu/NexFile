@@ -22,7 +22,7 @@ void sigchld_handler(int signum)
 }
 
 
-int main(int argc, char *argv[])
+int main()
 {
     struct sockaddr_in serverAddr;
     memset(&serverAddr, 0, sizeof(serverAddr));
@@ -115,5 +115,3 @@ int main(int argc, char *argv[])
 
     return 0;
 }
-
-// gcc -o server server.c tcpInit.c epoll.c threadPool.c worker.c taskQueue.c fileOpt.c ../include/logger.h -lpthread

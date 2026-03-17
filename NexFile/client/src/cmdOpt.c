@@ -1,11 +1,14 @@
 #include "../include/cmdOpt.h"
 
 #include "../include/clientsendMessage.h"
+#include "../../shared/protocol.h"
+#include "../../shared/logger.h"
 #include "../include/fileOpt.h"
 
 #include <stdio.h>
 #include <sys/socket.h>
 
+// 切割命令：预防内容为空或内存越界，返回-1表示命令不合法，0表示合法
 int cmdCut(char *cmd, packetCmd_t *pcmdArg)
 {
     char *token;
@@ -37,6 +40,7 @@ int cmdCut(char *cmd, packetCmd_t *pcmdArg)
         if (len >= sizeof(pcmdArg->data_))
         {
             pcmdArg->cmdCode_ = REQ_INVALID;
+            LOG_ERROR("Argument too long for command code %d: %s\n", pcmdArg->cmdCode_, token);
             return -1; // 参数过长
         }
 
@@ -58,15 +62,33 @@ int cmdCut(char *cmd, packetCmd_t *pcmdArg)
     return 0;
 }
 
+// 验证命令合法性：该有参数的必须带参，不该的禁止带参，返回-1表示不合法，0表示合法
 int cmdVeri(packetCmd_t *pcmdArg)
 {
     if (pcmdArg->cmdCode_ == REQ_INVALID)
     {
         return -1; // 命令不合法
     }
+
+    // 1-2参数可选，4-7必须带参数，pwd不能带参数
+    if(pcmdArg->argFlag_ >= 4 && pcmdArg->argFlag_ <= 7) // 这些命令必须带参数
+    {
+        if (pcmdArg->argFlag_ != 1 || pcmdArg->length_ <= 0 || strlen(pcmdArg->data_) == 0)
+        {
+            return -1; // 参数标志与长度不匹配
+        }
+    }else if(pcmdArg->cmdCode_ == REQ_PWD) // pwd命令不能带参数
+    {
+        if (pcmdArg->argFlag_ != 0 || pcmdArg->length_ != 0 || strlen(pcmdArg->data_) != 0)
+        {
+            return -1; // pwd命令不应带参数
+        }
+    }
+
     return 0; // 命令合法
 }
 
+// 先切分，再验证，返回0表示合法，-1表示不合法
 int cmdCheck(char *cmd, packetCmd_t *pcmdArg)
 {
     int ret = cmdCut(cmd, pcmdArg);
@@ -76,56 +98,4 @@ int cmdCheck(char *cmd, packetCmd_t *pcmdArg)
     }
     ret = cmdVeri(pcmdArg);
     return ret; // 返回0表示命令合法，非0表示命令不合法
-}
-
-int sendCmd(int sockfd, packetCmd_t *pcmdArg)
-{
-    int total_len = sizeof(packetCmd_t);
-    int sent = sendn(sockfd, pcmdArg, total_len);
-    if (sent < 0)
-    {
-        perror("sendCmd");
-        return -1;
-    }
-    return sent;
-}
-
-// 命令处理器
-int handleCommand(int sockfd, packetCmd_t *pcmdArg)
-{
-    switch (pcmdArg->cmdCode_)
-    {
-    case REQ_CD:
-        /* code */
-        sendCmd(sockfd, pcmdArg);
-        break;
-    case REQ_LS:
-        /* code */
-        sendCmd(sockfd, pcmdArg);
-        break;
-    case REQ_MKDIR:
-        /* code */
-        sendCmd(sockfd, pcmdArg);
-        break;
-    case REQ_RM:
-        /* code */
-        sendCmd(sockfd, pcmdArg);
-        break;
-    case REQ_PUT:
-        /* code */
-        sendCmd(sockfd, pcmdArg);
-        putFile(pcmdArg->data_, sockfd);
-        break;
-    case REQ_GET:
-        /* code */
-        sendCmd(sockfd, pcmdArg);
-        getFile(sockfd);
-        break;
-    case REQ_PWD:
-        /* code */
-        sendCmd(sockfd, pcmdArg);
-        break;
-    default:
-        return -1; // 未知命令
-    }
 }

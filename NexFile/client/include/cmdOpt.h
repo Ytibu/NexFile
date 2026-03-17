@@ -2,19 +2,13 @@
 #define __CMDOPT_H__
 #include "../../shared/protocol.h"
 
-// 切割命令，返回切割后的参数数量
+// 切割命令：预防内容为空或内存越界，返回-1表示命令不合法，0表示合法
 int cmdCut(char *cmd, packetCmd_t *pcmdArg);
 
-// 验证命令是否合法，返回1合法，0不合法
+// 验证命令是否合法：该有参数的必须带参，不该的禁止带参，返回-1表示不合法，0表示合法
 int cmdVeri(packetCmd_t *pcmdArg); 
 
-// 综合切割和验证命令，返回1合法，0不合法
+// 先切分，再验证，返回0表示合法，-1表示不合法
 int cmdCheck(char *cmd, packetCmd_t *pcmdArg); 
-
-// 发送命令到服务器，返回0成功，-1失败
-int sendCmd(int sockfd, packetCmd_t *pcmdArg);
-
-// 命令处理器
-int handleCommand(int sockfd, packetCmd_t *pcmdArg);
 
 #endif // __CMDOPT_H__

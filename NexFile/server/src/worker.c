@@ -38,6 +38,7 @@ int makeWorker(ThreadPool_t *pthreadPool)
     return 0;
 }
 
+// 处理用户校验和后续命令交互的主函数
 static int handle_authen_event(int clientFd)
 {
     while (1)
@@ -57,7 +58,7 @@ static int handle_authen_event(int clientFd)
 
         if (authRet == AUTH_RESULT_USER_QUERY_FAIL)
         {
-            printf("Client FD %d user information query failed.\n", clientFd);
+            printf("Client FD %d user information failed.\n", clientFd);
             continue;
         }
 

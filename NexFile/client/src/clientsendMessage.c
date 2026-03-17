@@ -49,26 +49,23 @@ int sendPassword(int fd, const char *username, const char *password)
         return -1;
     }
 
-    size_t usernameLen = strlen(username);
-    size_t passwordLen = strlen(password);
-    if (usernameLen > sizeof(((train_t *)0)->data_) || passwordLen > sizeof(((train_t *)0)->data_))
-    {
-        return -1;
-    }
+    int userLen = strlen(username);
+    int passLen = strlen(password);
 
     train_t train;
+
     memset(&train, 0, sizeof(train));
-    train.length_ = (int)usernameLen;
-    memcpy(train.data_, username, usernameLen);
-    if (sendn(fd, &train, sizeof(train.length_) + (size_t)train.length_) < 0)
+    train.length_ = userLen;
+    memcpy(train.data_, username, userLen);
+    if (sendn(fd, &train, sizeof(train.length_) + train.length_) < 0)
     {
         return -1;
     }
 
     memset(&train, 0, sizeof(train));
-    train.length_ = (int)passwordLen;
-    memcpy(train.data_, password, passwordLen);
-    if (sendn(fd, &train, sizeof(train.length_) + (size_t)train.length_) < 0)
+    train.length_ = passLen;
+    memcpy(train.data_, password, passLen);
+    if (sendn(fd, &train, sizeof(train.length_) + train.length_) < 0)
     {
         return -1;
     }

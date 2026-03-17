@@ -10,6 +10,7 @@ enum
 };
 
 int recvn(int sockFd, void *buf, long total);
+int sendn(int sockfd, const void *buf, long total);
 int UserAuthen(int sockfd);
 
 
