@@ -1,5 +1,5 @@
-#include "../include/recvCmd.h"
-#include "../include/sendMessage.h"
+#include "recvCmd.h"
+#include "sendMessage.h"
 
 #include <errno.h>
 #include <sys/socket.h>

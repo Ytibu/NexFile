@@ -1,8 +1,8 @@
-#include "../include/encryption.h"
-#include "../include/status.h"
-#include "../include/clientsendMessage.h"
-#include "../../shared/logger.h"
-#include "../../shared/protocol.h"
+#include "encryption.h"
+#include "status.h"
+#include "clientsendMessage.h"
+#include "../shared/logger.h"
+#include "../shared/protocol.h"
 
 #include <stdio.h>
 #include <shadow.h>

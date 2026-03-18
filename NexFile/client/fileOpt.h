@@ -1,7 +1,7 @@
 #ifndef __FILE_OPT_H__
 #define __FILE_OPT_H__
 
-#include "../../shared/protocol.h"
+#include "../shared/protocol.h"
 
 int cmdParse(int sockFd, packetCmd_t *cmd);        // 根据命令代码解析并执行相应操作
 int sendCmd(int sockFd, packetCmd_t *cmd); // 传参cmd，函数内部初始化cmdSignal结构体并发送命令包到服务器

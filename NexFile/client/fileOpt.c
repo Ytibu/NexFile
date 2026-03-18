@@ -1,4 +1,4 @@
-#include "../include/fileOpt.h"
+#include "fileOpt.h"
 
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -6,10 +6,10 @@
 #include <sys/socket.h>
 #include <stdlib.h>
 
-#include "../../shared/protocol.h"
-#include "../../shared/logger.h"
-#include "../include/clientsendMessage.h"
-#include "../include/clientConfig.h"
+#include "../shared/protocol.h"
+#include "../shared/logger.h"
+#include "clientsendMessage.h"
+#include "clientConfig.h"
 
 // 解析命令并执行相应操作
 int cmdParse(int sockFd, packetCmd_t *cmd)
@@ -162,9 +162,6 @@ int putFile(int sockFd, packetCmd_t *cmd)
         LOG_ERROR("put command requires an argument (file path)\n");
         return -1;
     }
-
-    char filePath[1024];
-    snprintf(filePath, sizeof(filePath), "%s/%s", CLIENT_FILE_PATH, cmd->data_);
 
     train_t train;
     train.length_ = strlen(cmd->data_);

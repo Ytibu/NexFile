@@ -1,4 +1,4 @@
-#include "../include/epoll.h"
+#include "epoll.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/epoll.h>

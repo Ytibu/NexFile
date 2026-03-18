@@ -1,4 +1,4 @@
-#include "../include/userStatus.h"
+#include "userStatus.h"
 
 int initUserStatus(userStatus_t *status, const char *username)
 {

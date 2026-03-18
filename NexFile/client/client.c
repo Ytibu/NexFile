@@ -1,10 +1,10 @@
-#include "../../shared/logger.h"
-#include "../include/cmdOpt.h"
-#include "../include/status.h"
-#include "../include/encryption.h"
-#include "../include/epoll.h"
-#include "../include/clientConfig.h"
-#include "../include/fileOpt.h"
+#include "../shared/logger.h"
+#include "cmdOpt.h"
+#include "status.h"
+#include "encryption.h"
+#include "epoll.h"
+#include "clientConfig.h"
+#include "fileOpt.h"
 
 #include <stdio.h>
 #include <stdlib.h>

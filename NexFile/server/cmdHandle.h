@@ -1,8 +1,8 @@
 #ifndef __CMDHANDLE_H__
 #define __CMDHANDLE_H__
 
-#include "../../shared/protocol.h"
-#include "../../shared/logger.h"
+#include  "../shared/protocol.h"
+#include  "../shared/logger.h"
 
 int cmdParse(int sockFd, packetCmd_t *cmd);         // 解析命令并执行相应操作
 int sendSignal(int sockFd, char *message, CmdStatus status); // 发送命令结果信号，支持携带可选 message_ 数据

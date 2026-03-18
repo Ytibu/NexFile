@@ -1,7 +1,8 @@
-#include "../include/cmdHandle.h"
+#include "cmdHandle.h"
 
-#include "../../shared/protocol.h"
-#include "../include/sendMessage.h"
+#include  "../shared/protocol.h"
+#include "sendMessage.h"
+#include "clientHandle.h"
 
 #include <unistd.h>
 #include <sys/stat.h>
@@ -10,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/socket.h>
@@ -60,10 +62,15 @@ int sendSignal(int sockFd, char *message, CmdStatus status)
     if (message != NULL)
     {
         size_t msgLen = strlen(message);
+        if (msgLen > INT_MAX)
+        {
+            LOG_ERROR("sendSignal message too long\n");
+            return -1;
+        }
         cmdSignal.length_ = (int)msgLen;
     }
 
-    int send_ret = send(sockFd, &cmdSignal, sizeof(cmdSignal), MSG_NOSIGNAL);
+    int send_ret = sendn(sockFd, (char *)&cmdSignal, sizeof(cmdSignal));
     if (send_ret < 0)
     {
         perror("send cmdSignal header");
@@ -84,12 +91,15 @@ int sendSignal(int sockFd, char *message, CmdStatus status)
 // 切换目录
 int changeDir(int sockFd, packetCmd_t *cmd)
 {
+    (void)sockFd;
+    (void)cmd;
     return 0;
 }
 
 // 列出目录内容
 int listDir(int sockFd, packetCmd_t *cmd)
 {
+    (void)sockFd;
     DIR *dir;
     struct dirent *entry;
 
@@ -116,6 +126,8 @@ int listDir(int sockFd, packetCmd_t *cmd)
 // 打印当前工作目录
 int printWorkingDir(int sockFd, packetCmd_t *cmd)
 {
+    (void)sockFd;
+    (void)cmd;
     char cwd[1024];
     if (getcwd(cwd, sizeof(cwd)) != NULL)
     {
@@ -133,6 +145,7 @@ int printWorkingDir(int sockFd, packetCmd_t *cmd)
 // 上传文件 -- 服务器接收文件
 int PutFile(int sockFd, packetCmd_t *cmd)
 {
+    (void)cmd;
     train_t train;
     memset(&train, 0, sizeof(train));
 
@@ -201,6 +214,7 @@ int GetFile(int sockFd, packetCmd_t *cmd)
 // 删除文件或目录
 int removeFile(int sockFd, packetCmd_t *cmd)
 {
+    (void)sockFd;
     int result = unlink(cmd->data_);
     if (result == -1)
     {
@@ -213,7 +227,16 @@ int removeFile(int sockFd, packetCmd_t *cmd)
 // 创建目录
 int makeDir(int sockFd, packetCmd_t *cmd)
 {
-    int result = mkdir(cmd->data_, 0755);
+    // 拼接clientPath和cmd->data_形成完整路径，并操作拼接后的内容，不修改clientPath的值
+    char fullPath[MAX_PATH_LEN] = {0};
+    int written = snprintf(fullPath, sizeof(fullPath), "%s/%s", clientPath, cmd->data_);
+    if (written < 0 || written >= (int)sizeof(fullPath))
+    {
+        LOG_ERROR("Failed to construct full path for mkdir\n");
+        return -1;
+    }
+    int result = mkdir(fullPath, 0755);
+    printf("Attempting to create directory: %s\n", fullPath);
     if (result == -1)
     {
         char errorMsg[256] = "Failed to create directory";

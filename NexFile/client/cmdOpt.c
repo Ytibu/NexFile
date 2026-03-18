@@ -1,9 +1,8 @@
-#include "../include/cmdOpt.h"
+#include "cmdOpt.h"
 
-#include "../include/clientsendMessage.h"
-#include "../../shared/protocol.h"
-#include "../../shared/logger.h"
-#include "../include/fileOpt.h"
+#include "clientsendMessage.h"
+#include "../shared/logger.h"
+#include "fileOpt.h"
 
 #include <stdio.h>
 #include <sys/socket.h>

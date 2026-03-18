@@ -1,5 +1,5 @@
-#include "../include/tcpInit.h"
-#include "../../shared/logger.h"
+#include "tcpInit.h"
+#include  "../shared/logger.h"
 
 #include <stdio.h>
 #include <string.h>

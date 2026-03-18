@@ -1,6 +1,6 @@
 #ifndef __CMDOPT_H__
 #define __CMDOPT_H__
-#include "../../shared/protocol.h"
+#include  "../shared/protocol.h"
 
 // 切割命令：预防内容为空或内存越界，返回-1表示命令不合法，0表示合法
 int cmdCut(char *cmd, packetCmd_t *pcmdArg);

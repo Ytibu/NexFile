@@ -1,4 +1,4 @@
-#include "../include/status.h"
+#include "status.h"
 
 #include <stdio.h>
 #include <string.h>

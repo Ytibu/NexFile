@@ -1,5 +1,5 @@
-#include "../include/configParser.h"
-#include "../../shared/logger.h"
+#include "configParser.h"
+#include  "../shared/logger.h"
 
 #include <arpa/inet.h>
 #include <fcntl.h>

@@ -1,5 +1,5 @@
-#include "../include/clientsendMessage.h"
-#include "../../shared/protocol.h"
+#include "clientsendMessage.h"
+#include "../shared/protocol.h"
 
 #include <unistd.h>
 #include <errno.h>

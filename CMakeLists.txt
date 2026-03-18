@@ -24,29 +24,34 @@ if (CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
     )
 endif()
 
-# 自动收集服务端源文件
-file(GLOB SERVER_SOURCES CONFIGURE_DEPENDS
-    "${CMAKE_SOURCE_DIR}/NexFile/server/src/*.c"
+# 将每个模块的头文件和实现文件放在同一组内，便于统一管理
+file(GLOB SERVER_FILES CONFIGURE_DEPENDS
+    "${CMAKE_SOURCE_DIR}/NexFile/server/*.c"
+    "${CMAKE_SOURCE_DIR}/NexFile/server/*.h"
 )
 
-# 自动收集客户端源文件
-file(GLOB CLIENT_SOURCES CONFIGURE_DEPENDS
-    "${CMAKE_SOURCE_DIR}/NexFile/client/src/*.c"
+file(GLOB CLIENT_FILES CONFIGURE_DEPENDS
+    "${CMAKE_SOURCE_DIR}/NexFile/client/*.c"
+    "${CMAKE_SOURCE_DIR}/NexFile/client/*.h"
+)
+
+# shared 仅提供头文件，使用接口库供 server/client 统一链接
+add_library(shared_headers INTERFACE)
+target_include_directories(shared_headers INTERFACE
+    "${CMAKE_SOURCE_DIR}/NexFile/shared"
 )
 
 # server 可执行文件与头文件路径
-add_executable(server ${SERVER_SOURCES})
+add_executable(server ${SERVER_FILES})
 target_include_directories(server PRIVATE
-    "${CMAKE_SOURCE_DIR}/NexFile/server/include"
-    "${CMAKE_SOURCE_DIR}/NexFile/shared"
+    "${CMAKE_SOURCE_DIR}/NexFile/server"
 )
-# server 依赖 pthread 线程库
-target_link_libraries(server PRIVATE pthread crypt)
+# server 依赖 pthread 线程库和 shared 头文件接口
+target_link_libraries(server PRIVATE shared_headers pthread crypt)
 
 # client 可执行文件与头文件路径
-add_executable(client ${CLIENT_SOURCES})
+add_executable(client ${CLIENT_FILES})
 target_include_directories(client PRIVATE
-    "${CMAKE_SOURCE_DIR}/NexFile/client/include"
-    "${CMAKE_SOURCE_DIR}/NexFile/shared"
+    "${CMAKE_SOURCE_DIR}/NexFile/client"
 )
-target_link_libraries(client PRIVATE crypt)
+target_link_libraries(client PRIVATE shared_headers crypt)

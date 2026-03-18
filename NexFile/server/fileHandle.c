@@ -1,4 +1,4 @@
-#include "../include/fileHandle.h"
+#include "fileHandle.h"
 
 #include "../shared/protocol.h"
 #include "../shared/logger.h"

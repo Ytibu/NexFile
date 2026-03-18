@@ -1,4 +1,4 @@
-#include "../include/authen.h"
+#include "authen.h"
 
 #include <stdio.h>
 #include <shadow.h>

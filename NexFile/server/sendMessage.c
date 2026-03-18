@@ -1,12 +1,14 @@
-#include "../include/sendMessage.h"
-#include "../include/authen.h"
-#include "../../shared/protocol.h"
+#include "sendMessage.h"
+#include "authen.h"
+#include "clientHandle.h"
+#include  "../shared/protocol.h"
 
 #include <stdio.h>
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <string.h>
 
 // 一次性读取指定长度的数据
 int recvn(int sockFd, void *buf, long total)
@@ -78,6 +80,19 @@ int UserAuthen(int sockfd)
     int auth_ret = authenticateUser(username, cryptPassword);
     if (auth_ret == AUTH_RESULT_OK)
     {
+        size_t pathLen = strlen(clientPath);
+        size_t userLen = strlen(username);
+        if (pathLen + 1 + userLen >= MAX_PATH_LEN)
+        {
+            return AUTH_RESULT_IO_ERROR;
+        }
+
+        if (pathLen == 0 || clientPath[pathLen - 1] != '/')
+        {
+            clientPath[pathLen++] = '/';
+            clientPath[pathLen] = '\0';
+        }
+        strncat(clientPath, username, MAX_PATH_LEN - pathLen - 1); // 直接将用户名追加到当前路径
         const char *success_msg = "AUTH_RESULT_OK";
         memset(&train, 0, sizeof(int));
         train.length_ = strlen(success_msg);

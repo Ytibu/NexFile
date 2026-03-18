@@ -1,5 +1,5 @@
-#include "../include/filePath.h"
-#include "../../shared/protocol.h"
+#include "filePath.h"
+#include  "../shared/protocol.h"
 
 #include <stdlib.h>
 #include <string.h>

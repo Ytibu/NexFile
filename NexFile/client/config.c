@@ -1,6 +1,6 @@
-#include "../include/config.h"
+#include "config.h"
 
-#include "../../shared/logger.h"
+#include "../shared/logger.h"
 
 #include <fcntl.h>
 #include <sys/socket.h>
