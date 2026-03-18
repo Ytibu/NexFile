@@ -82,17 +82,20 @@ int UserAuthen(int sockfd)
         memset(&train, 0, sizeof(int));
         train.length_ = strlen(success_msg);
         memcpy(train.data_, success_msg, train.length_);
-        if (send(sockfd, &train, sizeof(int)+train.length_, MSG_NOSIGNAL) <= 0)
+        if (send(sockfd, &train, sizeof(int) + train.length_, MSG_NOSIGNAL) <= 0)
         {
             return AUTH_RESULT_IO_ERROR;
         }
-        return AUTH_RESULT_OK;
+        return auth_ret;
     }
 
     if (auth_ret == AUTH_RESULT_USER_QUERY_FAIL || auth_ret == AUTH_RESULT_FAIL)
     {
         const char *fail_msg = "AUTH_FAIL";
-        if (send(sockfd, fail_msg, strlen(fail_msg), MSG_NOSIGNAL) < 0)
+        memset(&train, 0, sizeof(int));
+        train.length_ = strlen(fail_msg);
+        memcpy(train.data_, fail_msg, train.length_);
+        if (send(sockfd, &train, sizeof(int) + train.length_, MSG_NOSIGNAL) <= 0)
         {
             return AUTH_RESULT_IO_ERROR;
         }

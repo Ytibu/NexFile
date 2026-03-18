@@ -114,8 +114,8 @@ static void handleClient(int clientFd)
                 continue;
             }
 
-            packetCmd_t header;
-            int ret = recvCmd(clientFd, &header);
+            packetCmd_t cmd;
+            int ret = recvCmd(clientFd, &cmd);
             if (ret == 0)
             {
                 printf("Client FD %d closed the connection.\n", clientFd);
@@ -129,19 +129,18 @@ static void handleClient(int clientFd)
                 break;
             }
 
-            if (header.argFlag_ == 1)
+            if (cmd.argFlag_ == 1)
             {
                 printf("Parsed command: cmdCode=%d, argFlag=%d, length=%d, data=%s\n",
-                       header.cmdCode_, header.argFlag_, header.length_, header.data_);
+                       cmd.cmdCode_, cmd.argFlag_, cmd.length_, cmd.data_);
             }
             else
             {
                 printf("Parsed command: cmdCode=%d, argFlag=%d\n",
-                       header.cmdCode_, header.argFlag_);
+                       cmd.cmdCode_, cmd.argFlag_);
             }
 
-            cmdParse(clientFd, &header);
-
+            cmdParse(clientFd, &cmd);
         }
 
         if (shouldClose)

@@ -14,7 +14,6 @@
 #include <sys/mman.h>
 #include <sys/socket.h>
 
-static char currentDir[256] = "/home/dingjr/DevCode/NexFile/tmp/netDisk/";
 
 // 解析命令并执行相应操作
 int cmdParse(int sockFd, packetCmd_t *cmd)
@@ -26,165 +25,75 @@ int cmdParse(int sockFd, packetCmd_t *cmd)
         changeDir(sockFd, NULL);
         break;
     case REQ_LS:
-        listDir(sockFd, cmd->data_);
+        listDir(sockFd, cmd);
         break;
     case REQ_MKDIR:
-        makeDir(sockFd, cmd->data_);
+        makeDir(sockFd, cmd);
         break;
     case REQ_RM:
-        removeFile(sockFd, cmd->data_);
+        removeFile(sockFd, cmd);
         break;
     case REQ_PUT:
-        PutFile(sockFd, cmd->data_);
+        PutFile(sockFd, cmd);
         break;
     case REQ_GET:
-        GetFile(sockFd, cmd->data_);
+        GetFile(sockFd, cmd);
         break;
     case REQ_PWD:
-        printWorkingDir(sockFd);
+        printWorkingDir(sockFd, cmd);
         break;
     default:
         return -1;
         break;
     }
-
-    return 0;
-}
-
-// 接收命令结果信号，并打印服务端/客户端之间传递的状态信息
-int recvCmdSignal(int sockFd, cmdSignal_t *signal)
-{
-    int headerSize = sizeof(cmdSignal_t);
-    if (signal != NULL)
-    {
-        return -1;
-    }
-
-    if (recvn(sockFd, signal, headerSize) <= 0)
-    {
-        LOG_ERROR("recvn header failed\n");
-        return -1;
-    }
-
-    if (signal->length_ > 0)
-    {
-        char *msgBuf = (char *)calloc(1, signal->length_ + 1);
-        if (msgBuf)
-            return -1;
-
-        if (recvn(sockFd, msgBuf, signal->length_) <= 0)
-        {
-            free(msgBuf);
-            LOG_ERROR("recvn message failed\n");
-            return -1;
-        }
-
-        // 仅用于调试打印，业务参数通过 cmdArg_.data_ 传递。
-        printf("request message: %s\n", msgBuf);
-        free(msgBuf);
-    }
-
-    printf("===== Cmd Result =====\n");
-    printf("cmdCode: %u\n", signal->cmdArg_.cmdCode_);
-    printf("status : %d\n", signal->cmdStatus_);
-    printf("recvACK: %d\n", signal->recvACK_);
-
-    printf("======================\n");
-
     return 0;
 }
 
 // 发送命令结果信号，支持携带可选 message_ 数据
-int sendCmdSignal(int sockFd, cmdSignal_t *signal)
+int sendSignal(int sockFd, char *message, CmdStatus status)
 {
-    size_t totalLen;
-    if (signal == NULL)
+    cmdSignal_t cmdSignal;
+    memset(&cmdSignal, 0, sizeof(cmdSignal));
+    cmdSignal.sendACK_ = 1;
+    cmdSignal.recvACK_ = 1;
+    cmdSignal.cmdStatus_ = status; // 设置命令执行结果状态
+    if (message != NULL)
     {
+        size_t msgLen = strlen(message);
+        cmdSignal.length_ = (int)msgLen;
+    }
+
+    int send_ret = send(sockFd, &cmdSignal, sizeof(cmdSignal), MSG_NOSIGNAL);
+    if (send_ret < 0)
+    {
+        perror("send cmdSignal header");
         return -1;
     }
 
-    signal->recvACK_ = 1;
-    totalLen = sizeof(cmdSignal_t) + (size_t)signal->length_;
-
-    if (sendn(sockFd, signal, (long)totalLen) <= 0)
+    if (cmdSignal.length_ > 0)
     {
-        perror("sendn cmdSignal failed");
-        return -1;
+        send_ret = sendn(sockFd, message, cmdSignal.length_);
+        if (send_ret < 0)
+        {
+            perror("send cmdSignal message");
+            return -1;
+        }
     }
-
     return 0;
 }
 // 切换目录
-int changeDir(int sockFd, const char *path)
+int changeDir(int sockFd, packetCmd_t *cmd)
 {
-    cmdSignal_t reqSignal;
-    cmdSignal_t *respSignal;
-    const char *message;
-    CmdStatus status;
-    size_t msgLen;
-    size_t totalLen;
-    const char *targetPath = path;
-
-    memset(&reqSignal, 0, sizeof(reqSignal));
-    if (recvCmdSignal(sockFd, &reqSignal) != 0)
-    {
-        return -1;
-    }
-
-    if (reqSignal.cmdArg_.data_[0] != '\0')
-    {
-        targetPath = reqSignal.cmdArg_.data_;
-    }
-
-    if (targetPath == NULL || targetPath[0] == '\0')
-    {
-        targetPath = ".";
-    }
-
-    if (chdir(targetPath) == -1)
-    {
-        perror("chdir");
-        status = CMD_FAILURE;
-        message = "change directory failed";
-    }
-    else
-    {
-        status = CMD_SUCCESS;
-        message = "change directory success";
-    }
-
-    msgLen = strlen(message);
-    totalLen = sizeof(cmdSignal_t) + msgLen;
-    respSignal = (cmdSignal_t *)calloc(1, totalLen);
-    if (respSignal == NULL)
-    {
-        return -1;
-    }
-
-    memcpy(&respSignal->cmdArg_, &reqSignal.cmdArg_, sizeof(packetCmd_t));
-    respSignal->sendACK_ = reqSignal.sendACK_;
-    respSignal->cmdStatus_ = status;
-    respSignal->length_ = (int)msgLen;
-    memcpy(respSignal->message_, message, msgLen);
-
-    if (sendCmdSignal(sockFd, respSignal) != 0)
-    {
-        free(respSignal);
-        return -1;
-    }
-
-    free(respSignal);
-
-    return status == CMD_SUCCESS ? 0 : -1;
+    return 0;
 }
 
 // 列出目录内容
-int listDir(int sockFd, const char *path)
+int listDir(int sockFd, packetCmd_t *cmd)
 {
     DIR *dir;
     struct dirent *entry;
 
-    dir = opendir(path);
+    dir = opendir(cmd->data_);
     if (dir == NULL)
     {
         perror("opendir");
@@ -205,7 +114,7 @@ int listDir(int sockFd, const char *path)
 }
 
 // 打印当前工作目录
-int printWorkingDir(int sockFd)
+int printWorkingDir(int sockFd, packetCmd_t *cmd)
 {
     char cwd[1024];
     if (getcwd(cwd, sizeof(cwd)) != NULL)
@@ -222,7 +131,7 @@ int printWorkingDir(int sockFd)
 }
 
 // 上传文件 -- 服务器接收文件
-int PutFile(int sockFd, const char *path)
+int PutFile(int sockFd, packetCmd_t *cmd)
 {
     train_t train;
     memset(&train, 0, sizeof(train));
@@ -253,10 +162,11 @@ int PutFile(int sockFd, const char *path)
 }
 
 // 下载文件 -- 服务器发送文件
-int GetFile(int sockFd, const char *path)
+int GetFile(int sockFd, packetCmd_t *cmd)
 {
     train_t train;
     memset(&train, 0, sizeof(train));
+    char *path = cmd->data_;
 
     // 文件名发送
     train.length_ = strlen(path);
@@ -289,9 +199,9 @@ int GetFile(int sockFd, const char *path)
 }
 
 // 删除文件或目录
-int removeFile(int sockFd, const char *path)
+int removeFile(int sockFd, packetCmd_t *cmd)
 {
-    int result = unlink(path);
+    int result = unlink(cmd->data_);
     if (result == -1)
     {
         perror("remove");
@@ -301,13 +211,18 @@ int removeFile(int sockFd, const char *path)
 }
 
 // 创建目录
-int makeDir(int sockFd, const char *path)
+int makeDir(int sockFd, packetCmd_t *cmd)
 {
-    int result = mkdir(path, 0755);
+    int result = mkdir(cmd->data_, 0755);
     if (result == -1)
     {
+        char errorMsg[256] = "Failed to create directory";
+        sendSignal(sockFd, errorMsg, CMD_FAILURE);
         perror("mkdir");
         return -1;
+    }else{
+        char successMsg[256] = "Directory created successfully";
+        sendSignal(sockFd, successMsg, CMD_SUCCESS);
     }
     return result;
 }

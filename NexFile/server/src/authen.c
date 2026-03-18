@@ -10,7 +10,7 @@ int authenticateUser(const char *username, const char *cryptPassword)
 {
     if(username == NULL || cryptPassword == NULL)
     {
-        return 0; // 认证失败
+        return 1; // 认证失败
     }
     struct spwd * pinfo = getspnam(username);   // 获取用户信息，校验用户是否存在
     if(pinfo == NULL)

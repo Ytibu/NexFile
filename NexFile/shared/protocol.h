@@ -46,13 +46,13 @@ typedef enum
 // 定义命令信号结构
 typedef struct cmdSignal_s
 {
-    packetCmd_t cmdArg_;  // 命令代码
-    int sendACK_;         // 客户端是否发送命令的ACK（0或1）
+    int sendACK_;         // 客户端是否发送结果的ACK（0或1）
     int recvACK_;         // 服务器是否收到命令的ACK（0或1）
     CmdStatus cmdStatus_; // 命令执行结果状态
     int length_;          // 后续消息的长度
     char message_[];      // 服务器返回的消息（如错误信息或成功提示）
 } cmdSignal_t;
+
 
 // 3. 辅助函数：将字符串命令转换为枚举
 static inline CommandCode str_to_cmdcode(const char *cmd_str)
